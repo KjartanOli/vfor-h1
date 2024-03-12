@@ -1,6 +1,8 @@
 *~
+node_modules
 .vscode
 .dir-locals.el
 channels.scm
 manifest.scm
+gc.root
 .env
