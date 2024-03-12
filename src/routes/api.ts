@@ -21,6 +21,15 @@ const endpoints: Array<Endpoint> = [
       }
     ]
   },
+  {
+    href: '/games',
+    methods: [
+      {
+        method: Method.GET,
+        handlers: [get_games]
+      }
+    ]
+  }
 ]
 
 async function get_index(req: Request, res: Response) {
@@ -32,6 +41,10 @@ async function get_index(req: Request, res: Response) {
 
 async function post_login(req: Request, res: Response) {
   res.json({ token: "Hello" });
+}
+
+async function get_games(req: Request, res: Response) {
+  res.json([{name: 'XCOM', publisher: 'Firaxis'}]);
 }
 
 endpoints.forEach(endpoint => {
