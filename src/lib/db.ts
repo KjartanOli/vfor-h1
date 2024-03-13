@@ -1,6 +1,7 @@
 import pg from 'pg';
 import slugify from 'slugify';
 import { ILogger, logger as loggerSingleton } from './logger.js';
+import { Game } from './types.js'; 
 import { environment } from './environment.js';
 
 
@@ -94,6 +95,49 @@ export class Database {
     } finally {
       client.release();
     }
+  }
+
+
+  /**
+   * Create the database schema.
+   */
+  async createSchema(): Promise<pg.QueryResult | null> {
+    const q = `
+      DROP TABLE IF EXISTS games;
+      CREATE TABLE IF NOT EXISTS games (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        category TEXT NOT NULL,
+        description TEXT NOT NULL,
+        studio TEXT NOT NULL,
+        year INTEGER NOT NULL
+      );
+    `;
+    return this.query(q);
+  }
+
+
+  /**
+   * Insert a game into the database.
+   */
+  async insertGame(game: Omit<Game, 'id'>): Promise<Game | null> {
+    const q = `
+      INSERT INTO games (name, category, description, studio, year) VALUES ($1, $2, $3, $4, $5) RETURNING *;
+    `;
+
+    const result = await this.query(q, [
+      game.name,
+      game.category,
+      game.description,
+      game.studio,
+      game.year,
+    ]);
+
+    if (!result || result.rowCount !== 1) {
+      this.logger.warn('unable to insert game', { result, game });
+      return null;
+    }
+    return this.getGame(result.rows[0].id);
   }
 
 

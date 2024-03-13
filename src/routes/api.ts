@@ -39,7 +39,7 @@ const endpoints: Array<Endpoint> = [
         ...default_method_descriptor,
         method: Method.POST,
         authentication: [ensureAuthenticated, ensureAdmin],
-        handlers: [post_games]
+        handlers: [post_game]
       }
     ]
   },
@@ -131,7 +131,25 @@ async function post_login(req: Request, res: Response) {
 }
 
 async function get_games(req: Request, res: Response) {
-  res.json([{name: 'XCOM', publisher: 'Firaxis'}]);
+async function post_game(req: Request, res: Response) {
+  const { name, category, description, studio, year } = req.body;
+  if (!name || !category || !description || !studio || !year) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
+
+  const game = await getDatabase()?.insertGame({
+    name,
+    category,
+    description,
+    studio,
+    year
+  })
+
+  if (!game) {
+    return res.status(500).json({ error: 'Could not insert game' });
+  }
+
+  return res.json(game);
 }
 
 async function get_game_by_id(req: Request, res: Response) {
