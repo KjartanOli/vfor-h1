@@ -14,10 +14,44 @@ export type RequestHandler = Handler | Middleware;
 
 export interface MethodDescriptor {
   method: Method,
+  authentication: Array<Middleware>,
+  validation: Array<Middleware>,
   handlers: Array<RequestHandler>
+};
+
+/**
+ * A default method descriptor to reduce boilerplate.  If your method
+ *  descriptor does not require authentication or validatian you can
+ *  spread this value in its initialiser, i.e.
+ * { ...default_method_descriptor } to set the authentication and
+ * validation handlers as empty.
+ */
+export const default_method_descriptor = {
+  authentication: [],
+  validation: [],
 };
 
 export interface Endpoint {
   href: string,
   methods: Array<MethodDescriptor>
+}
+
+export interface User {
+  id: number,
+  username: string,
+  name: string
+  password: string,
+  admin: boolean
+}
+
+declare global {
+  namespace Express {
+    interface User {
+      id: number,
+      username: string,
+      name: string
+      password: string,
+      admin: boolean
+    }
+  }
 }
