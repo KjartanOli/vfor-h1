@@ -118,6 +118,69 @@ export class Database {
 
 
   /**
+   * Get games from the database.
+   * @param {number} [limit=MAX_GAMES] Number of games to get.
+   */
+  async getGames(limit = MAX_GAMES): Promise<Game[] | null> {
+    const q = `
+      SELECT * FROM games ORDER BY id DESC LIMIT $1;
+    `;
+
+    // Ensure we don't get too many games and that we get at least one
+    const usedLimit = Math.min(limit > 0 ? limit : MAX_GAMES, MAX_GAMES);
+
+    const result = await this.query(q, [usedLimit.toString()]);
+
+    const games: Array<Game> = [];
+    if (result && (result.rows?.length ?? 0) > 0) {
+      for (const row of result.rows) {
+        const game: Game = {
+          id: row.id,
+          name: row.name,
+          category: row.category,
+          description: row.description,
+          studio: row.studio,
+          year: row.year,
+        };
+        games.push(game);
+      }
+
+      return games;
+    }
+
+    return null;
+  }
+
+  /**
+   * Get a game from the database.
+   */
+  async getGame(id: string): Promise<Game | null> {
+    const q = `
+      SELECT * FROM games WHERE id = $1
+    `;
+
+    const result = await this.query(q, [id]);
+
+    if (result && result.rows.length === 1) {
+      const row = result.rows[0];
+      const game: Game = {
+        id: row.id,
+        name: row.name,
+        category: row.category,
+        description: row.description,
+        studio: row.studio,
+        year: row.year,
+      };
+      return game;
+    }
+
+    return null;
+  }
+
+
+
+
+  /**
    * Insert a game into the database.
    */
   async insertGame(game: Omit<Game, 'id'>): Promise<Game | null> {
@@ -140,6 +203,21 @@ export class Database {
     return this.getGame(result.rows[0].id);
   }
 
+
+
+  /**
+   * Delete a game from the database.
+   */
+  async deleteGame(id: string): Promise<boolean> {
+    const result = await this.query('DELETE FROM games WHERE id = $1', [id]);
+
+    if (!result || result.rowCount !== 1) {
+      this.logger.warn('unable to delete game', { result, id });
+      return false;
+    }
+    return true;
+  }
+}
 
 let db: Database | null = null;
 

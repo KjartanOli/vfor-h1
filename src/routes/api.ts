@@ -4,6 +4,7 @@ import { Endpoint, Method, User, default_method_descriptor } from '../lib/types.
 import * as users from '../lib/users.js';
 import { jwt_secret, token_lifetime } from '../app.js';
 import passport, { authenticate } from 'passport';
+import { getDatabase } from '../lib/db.js';
 
 export const router = express.Router();
 
@@ -131,6 +132,15 @@ async function post_login(req: Request, res: Response) {
 }
 
 async function get_games(req: Request, res: Response) {
+  const games = await getDatabase()?.getGames();
+
+  if (!games) {
+    return res.status(500).json({ error: 'Could not get games' });
+  }
+
+  return res.json(games);
+}
+
 async function post_game(req: Request, res: Response) {
   const { name, category, description, studio, year } = req.body;
   if (!name || !category || !description || !studio || !year) {
@@ -161,10 +171,6 @@ async function get_game_rating(req: Request, res: Response) {
 }
 
 async function post_game_rating(req: Request, res: Response) {
-  res.json({ error: 'Not implemented' });
-}
-
-async function post_games(req: Request, res: Response) {
   res.json({ error: 'Not implemented' });
 }
 
