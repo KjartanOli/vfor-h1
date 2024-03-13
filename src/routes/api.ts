@@ -63,7 +63,7 @@ async function ensureAuthenticated(req: Request, res: Response, next: NextFuncti
 
       req.user = user;
       return next();
-    })
+    });
 }
 
 function ensureAdmin(req: Request, res: Response, next: NextFunction) {
