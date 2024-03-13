@@ -42,6 +42,43 @@ const endpoints: Array<Endpoint> = [
         handlers: [post_games]
       }
     ]
+  },
+  {
+    href: '/games/:id',
+    methods: [
+      {
+        ...default_method_descriptor,
+        method: Method.GET,
+        handlers: [get_game_by_id]
+      },
+      {
+        ...default_method_descriptor,
+        method: Method.DELETE,
+        authentication: [ensureAuthenticated, ensureAdmin],
+        handlers: [delete_game_by_id]
+      },
+      {
+        ...default_method_descriptor,
+        method: Method.PATCH,
+        authentication: [ensureAuthenticated, ensureAdmin],
+        handlers: [patch_game_by_id]
+      }
+    ]
+  },
+  {
+    href: '/games/:id/rating',
+    methods: [
+      {
+        ...default_method_descriptor,
+        method: Method.GET,
+        handlers: [get_game_rating]
+      },
+      {
+        ...default_method_descriptor,
+        method: Method.POST,
+        handlers: [post_game_rating]
+      }
+    ]
   }
 ]
 
@@ -97,7 +134,27 @@ async function get_games(req: Request, res: Response) {
   res.json([{name: 'XCOM', publisher: 'Firaxis'}]);
 }
 
+async function get_game_by_id(req: Request, res: Response) {
+  res.json({name: 'XCOM', publisher: 'Firaxis'});
+}
+
+async function get_game_rating(req: Request, res: Response) {
+  res.json({ error: 'Not implemented' });
+}
+
+async function post_game_rating(req: Request, res: Response) {
+  res.json({ error: 'Not implemented' });
+}
+
 async function post_games(req: Request, res: Response) {
+  res.json({ error: 'Not implemented' });
+}
+
+async function delete_game_by_id(req: Request, res: Response) {
+  res.json({ error: 'Not implemented' });
+}
+
+async function patch_game_by_id(req: Request, res: Response) {
   res.json({ error: 'Not implemented' });
 }
 
