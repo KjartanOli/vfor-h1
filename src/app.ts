@@ -30,11 +30,6 @@ export const token_lifetime = (): number => {
 
 const app = express();
 
-app.get('/');
-app.use(express.json())
-app.use(passport.initialize())
-app.use(router);
-
 // TODO: Find the correct types for data and any
 async function strat(data: any, next: any) {
     const user = await users.find_by_id(data.id);
@@ -48,7 +43,13 @@ passport.use(new Strategy({
   secretOrKey: JWT_SECRET
 },
   strat
-))
+));
+
+
+app.get('/');
+app.use(express.json())
+app.use(passport.initialize())
+app.use(router);
 
 app.listen(port, () => {
   console.log(`Server running at http://localhost:${port}/`);

@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import { Endpoint, Method, User, default_method_descriptor } from '../lib/types.js';
 import * as users from '../lib/users.js';
 import { jwt_secret, token_lifetime } from '../app.js';
-import passport from 'passport';
+import passport, { authenticate } from 'passport';
 
 export const router = express.Router();
 
@@ -53,20 +53,18 @@ async function ensureAuthenticated(req: Request, res: Response, next: NextFuncti
     (err: any, user: User, info: any) => {
       if (err)
         return next(err);
-
       if (!user) {
         const error = info.name === 'TokenExpiredError'
           ? 'expired token' : 'invalid token';
-
         return res.status(401).json({ error });
       }
 
       req.user = user;
       return next();
-    });
+    })(req, res, next);
 }
 
-function ensureAdmin(req: Request, res: Response, next: NextFunction) {
+async function ensureAdmin(req: Request, res: Response, next: NextFunction) {
   if (!req.user?.admin)
     return res.status(401).json({ error: 'Insufficient permissions' });
 
@@ -107,16 +105,32 @@ endpoints.forEach(endpoint => {
   endpoint.methods.forEach(method => {
     switch (method.method) {
         case Method.GET:
-          router.get(endpoint.href, method.handlers);
+          router.get(endpoint.href, ...[
+            ...method.authentication,
+            ...method.validation,
+            ...method.handlers
+          ]);
           break;
         case Method.POST:
-          router.post(endpoint.href, method.handlers);
+          router.post(endpoint.href, ...[
+            ...method.authentication,
+            ...method.validation,
+            ...method.handlers
+          ]);
           break;
         case Method.PATCH:
-          router.patch(endpoint.href, method.handlers);
+          router.patch(endpoint.href, ...[
+            ...method.authentication,
+            ...method.validation,
+            ...method.handlers
+          ]);
           break;
         case Method.DELETE:
-          router.delete(endpoint.href, method.handlers);
+          router.delete(endpoint.href, ...[
+            ...method.authentication,
+            ...method.validation,
+            ...method.handlers
+          ]);
           break;
       }
   });
