@@ -164,7 +164,54 @@ async function post_game(req: Request, res: Response) {
 }
 
 async function get_game_by_id(req: Request, res: Response) {
-  res.json({name: 'XCOM', publisher: 'Firaxis'});
+  const id = parseInt(req.params.id, 10);
+  const game = await Games.get_game(id);
+
+  if (game.isErr() || game.value.isNone()) {
+    return res.status(404).json({ error: 'Game not found' });
+  }
+  return res.json(game);
+}
+
+async function delete_game_by_id(req: Request, res: Response) {
+  const id = parseInt(req.params.id, 10);
+  const result = await Games.delete_game(id);
+
+  try {
+    if (result.isErr()) {
+      return res.status(404).json({ error: 'Game not found' });
+    }
+    return res.status(204).json();
+  }
+  catch (e) {
+    return res.status(500).json({ error: 'Could not delete game' });
+  }
+}
+
+async function patch_game_by_id(req: Request, res: Response)
+{
+  const id = parseInt(req.params.id, 10);
+  const { name, category, description, studio, year } = req.body;
+  const game = await Games.get_game(id);
+
+  if (game.isErr() || game.value.isNone()) {
+    return res.status(404).json({ error: 'Game not found' });
+  }
+
+  const updated_game = await Games.update_game({
+    id: id,
+    name: name || game.value.value.name,
+    category: category || game.value.value.category,
+    description: description || game.value.value.description,
+    studio: studio || game.value.value.studio,
+    year: year || game.value.value.year
+  });
+
+  if (!updated_game) {
+    return res.status(500).json({ error: 'Could not update game' });
+  }
+
+  return res.json(updated_game);
 }
 
 async function get_game_rating(req: Request, res: Response) {
@@ -172,14 +219,6 @@ async function get_game_rating(req: Request, res: Response) {
 }
 
 async function post_game_rating(req: Request, res: Response) {
-  res.json({ error: 'Not implemented' });
-}
-
-async function delete_game_by_id(req: Request, res: Response) {
-  res.json({ error: 'Not implemented' });
-}
-
-async function patch_game_by_id(req: Request, res: Response) {
   res.json({ error: 'Not implemented' });
 }
 

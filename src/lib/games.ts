@@ -62,7 +62,7 @@ export async function insert_game(game: Omit<Game, 'id'>): Promise<Result<Game, 
   const q = `
 INSERT INTO games (name, category, description, studio, year)
 VALUES ($1, $2, $3, $4, $5)
- RETURNING id, name, category, description, studio, year;
+RETURNING id, name, category, description, studio, year;
 `;
 
   const result = await db.query(q, [
@@ -78,6 +78,37 @@ VALUES ($1, $2, $3, $4, $5)
   }
 
   return Ok(result.rows[0]);
+}
+
+export async function update_game(game: Game): Promise<Result<Game, string>> {
+  const db = getDatabase();
+  if (!db)
+    return Err('Could not get database connection');
+
+  const result = await db.query(`
+UPDATE games
+SET
+  name = $1,
+  category = $2,
+   description = $3,
+   studio = $4,
+   year = $5
+WHERE id = $6
+RETURNING id, name, category, description, studio, year;
+`, [
+    game.name,
+    game.category,
+    game.description,
+    game.studio,
+    game.year,
+    game.id
+]);
+
+  if (!result || result.rowCount !== 1) {
+    return Err(`unable to update game, ${{ result, game }}`);
+  }
+
+  return result.rows[0];
 }
 
 /**
