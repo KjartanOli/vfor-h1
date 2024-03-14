@@ -5,6 +5,7 @@ import * as users from '../lib/users.js';
 import * as Games from '../lib/games.js';
 import { jwt_secret, token_lifetime } from '../app.js';
 import passport from 'passport';
+import { check_validation, game_id_validator } from '../lib/validators.js';
 import { getDatabase } from '../lib/db.js';
 
 export const router = express.Router();
@@ -51,18 +52,21 @@ const endpoints: Array<Endpoint> = [
       {
         ...default_method_descriptor,
         method: Method.GET,
+        validation: [game_id_validator],
         handlers: [get_game_by_id]
       },
       {
         ...default_method_descriptor,
         method: Method.DELETE,
         authentication: [ensureAuthenticated, ensureAdmin],
+        validation: [game_id_validator],
         handlers: [delete_game_by_id]
       },
       {
         ...default_method_descriptor,
         method: Method.PATCH,
         authentication: [ensureAuthenticated, ensureAdmin],
+        validation: [game_id_validator],
         handlers: [patch_game_by_id]
       }
     ]
@@ -73,11 +77,13 @@ const endpoints: Array<Endpoint> = [
       {
         ...default_method_descriptor,
         method: Method.GET,
+        validation: [game_id_validator],
         handlers: [get_game_rating]
       },
       {
         ...default_method_descriptor,
         method: Method.POST,
+        validation: [game_id_validator],
         handlers: [post_game_rating]
       }
     ]
@@ -190,6 +196,7 @@ endpoints.forEach(endpoint => {
           router.get(endpoint.href, ...[
             ...method.authentication,
             ...method.validation,
+            check_validation,
             ...method.handlers
           ]);
           break;
@@ -197,6 +204,7 @@ endpoints.forEach(endpoint => {
           router.post(endpoint.href, ...[
             ...method.authentication,
             ...method.validation,
+            check_validation,
             ...method.handlers
           ]);
           break;
@@ -204,6 +212,7 @@ endpoints.forEach(endpoint => {
           router.patch(endpoint.href, ...[
             ...method.authentication,
             ...method.validation,
+            check_validation,
             ...method.handlers
           ]);
           break;
@@ -211,6 +220,7 @@ endpoints.forEach(endpoint => {
           router.delete(endpoint.href, ...[
             ...method.authentication,
             ...method.validation,
+            check_validation,
             ...method.handlers
           ]);
           break;
