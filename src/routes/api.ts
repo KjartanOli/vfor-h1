@@ -5,7 +5,6 @@ import * as users from '../lib/users.js';
 import * as Games from '../lib/games.js';
 import { jwt_secret, token_lifetime } from '../app.js';
 import passport from 'passport';
-import { getDatabase } from '../lib/db.js';
 
 export const router = express.Router();
 
