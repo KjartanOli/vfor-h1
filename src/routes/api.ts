@@ -39,7 +39,7 @@ const endpoints: Array<Endpoint> = [
       {
         ...default_method_descriptor,
         method: Method.POST,
-        // authentication: [ensureAuthenticated, ensureAdmin],
+        authentication: [ensureAuthenticated, ensureAdmin],
         handlers: [post_game]
       }
     ]
@@ -55,13 +55,13 @@ const endpoints: Array<Endpoint> = [
       {
         ...default_method_descriptor,
         method: Method.DELETE,
-        // authentication: [ensureAuthenticated, ensureAdmin],
+        authentication: [ensureAuthenticated, ensureAdmin],
         handlers: [delete_game_by_id]
       },
       {
         ...default_method_descriptor,
         method: Method.PATCH,
-        // authentication: [ensureAuthenticated, ensureAdmin],
+        authentication: [ensureAuthenticated, ensureAdmin],
         handlers: [patch_game_by_id]
       }
     ]
