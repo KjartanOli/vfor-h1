@@ -2,8 +2,9 @@ import express, { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { Endpoint, Method, User, default_method_descriptor } from '../lib/types.js';
 import * as users from '../lib/users.js';
+import * as Games from '../lib/games.js';
 import { jwt_secret, token_lifetime } from '../app.js';
-import passport, { authenticate } from 'passport';
+import passport from 'passport';
 import { getDatabase } from '../lib/db.js';
 
 export const router = express.Router();
@@ -132,13 +133,13 @@ async function post_login(req: Request, res: Response) {
 }
 
 async function get_games(req: Request, res: Response) {
-  const games = await getDatabase()?.getGames();
+  const games = await Games.get_games();
 
-  if (!games) {
+  if (games.isErr()) {
     return res.status(500).json({ error: 'Could not get games' });
   }
 
-  return res.json(games);
+  return res.json(games.value);
 }
 
 async function post_game(req: Request, res: Response) {
@@ -147,19 +148,19 @@ async function post_game(req: Request, res: Response) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
-  const game = await getDatabase()?.insertGame({
+  const game = await Games.insert_game({
     name,
     category,
     description,
     studio,
     year
-  })
+  });
 
-  if (!game) {
+  if (game.isErr()) {
     return res.status(500).json({ error: 'Could not insert game' });
   }
 
-  return res.json(game);
+  return res.json(game.value);
 }
 
 async function get_game_by_id(req: Request, res: Response) {
