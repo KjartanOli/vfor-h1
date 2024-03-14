@@ -46,7 +46,7 @@ const endpoints: Array<Endpoint> = [
     ]
   },
   {
-    href: '/games/:id',
+    href: '/games/:game',
     methods: [
       {
         ...default_method_descriptor,
@@ -71,7 +71,7 @@ const endpoints: Array<Endpoint> = [
     ]
   },
   {
-    href: '/games/:id/rating',
+    href: '/games/:game/rating',
     methods: [
       {
         ...default_method_descriptor,
