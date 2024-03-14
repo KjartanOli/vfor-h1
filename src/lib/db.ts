@@ -112,6 +112,13 @@ export class Database {
         studio TEXT NOT NULL,
         year INTEGER NOT NULL
       );
+      DROP TABLE IF EXISTS ratings;
+      CREATE TABLE IF NOT EXISTS ratings (
+        id SERIAL PRIMARY KEY,
+        game_id INTEGER NOT NULL,
+        rating INTEGER NOT NULL,
+        FOREIGN KEY (game_id) REFERENCES games (id)
+      );
     `;
     return this.query(q);
   }
@@ -234,6 +241,27 @@ export class Database {
     }
     return true;
   }
+
+  async get_ratings(game_id: number) {
+    const result = await this.query('SELECT * FROM ratings WHERE game_id = $1 ORDER BY id DESC', [game_id]);
+    if (!result) {
+      return null;
+    }
+    return result.rows;
+  }
+
+  async insert_rating(game_id: number, rating: number) {
+    const result = await this.query('INSERT INTO ratings (game_id, rating) VALUES ($1, $2)', [
+      game_id,
+      rating
+    ]); 
+    if (!result || result.rowCount !== 1) {
+      this.logger.warn('unable to insert rating', { result, rating });
+      return false;
+    }
+    return true;
+  }
+
 }
 
 
