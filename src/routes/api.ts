@@ -6,7 +6,6 @@ import * as Games from '../lib/games.js';
 import { jwt_secret, token_lifetime } from '../app.js';
 import passport from 'passport';
 import { check_validation, game_id_validator } from '../lib/validators.js';
-import { getDatabase } from '../lib/db.js';
 
 export const router = express.Router();
 
