@@ -53,6 +53,11 @@ export interface Game {
   year: number
 }
 
+export interface Rating {
+  game_id: number,
+  rating: number
+}
+
 declare global {
   namespace Express {
     interface User {

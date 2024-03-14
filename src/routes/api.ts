@@ -2,8 +2,9 @@ import express, { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { Endpoint, Method, User, default_method_descriptor } from '../lib/types.js';
 import * as users from '../lib/users.js';
+import * as Games from '../lib/games.js';
 import { jwt_secret, token_lifetime } from '../app.js';
-import passport, { authenticate } from 'passport';
+import passport from 'passport';
 import { getDatabase } from '../lib/db.js';
 
 export const router = express.Router();
@@ -132,13 +133,13 @@ async function post_login(req: Request, res: Response) {
 }
 
 async function get_games(req: Request, res: Response) {
-  const games = await getDatabase()?.getGames();
+  const games = await Games.get_games();
 
-  if (!games) {
+  if (games.isErr()) {
     return res.status(500).json({ error: 'Could not get games' });
   }
 
-  return res.json(games);
+  return res.json(games.value);
 }
 
 async function post_game(req: Request, res: Response) {
@@ -147,63 +148,63 @@ async function post_game(req: Request, res: Response) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
-  const game = await getDatabase()?.insertGame({
+  const game = await Games.insert_game({
     name,
     category,
     description,
     studio,
     year
-  })
+  });
 
-  if (!game) {
+  if (game.isErr()) {
     return res.status(500).json({ error: 'Could not insert game' });
   }
 
-  return res.json(game);
+  return res.json(game.value);
 }
 
 async function get_game_by_id(req: Request, res: Response) {
-  const { id } = req.params;
-  const game = await getDatabase()?.getGame(id);
-  
-  if (!game) {
+  const id = parseInt(req.params.id, 10);
+  const game = await Games.get_game(id);
+
+  if (game.isErr() || game.value.isNone()) {
     return res.status(404).json({ error: 'Game not found' });
   }
   return res.json(game);
 }
 
 async function delete_game_by_id(req: Request, res: Response) {
-  const { id } = req.params;
-  const result = await getDatabase()?.deleteGame(id);
+  const id = parseInt(req.params.id, 10);
+  const result = await Games.delete_game(id);
 
   try {
-    if (!result) {
+    if (result.isErr()) {
       return res.status(404).json({ error: 'Game not found' });
     }
     return res.status(204).json();
-  } 
+  }
   catch (e) {
     return res.status(500).json({ error: 'Could not delete game' });
   }
 }
 
-async function patch_game_by_id(req: Request, res: Response) 
+async function patch_game_by_id(req: Request, res: Response)
 {
-  const { id } = req.params;
+  const id = parseInt(req.params.id, 10);
   const { name, category, description, studio, year } = req.body;
-  const game = await getDatabase()?.getGame(id);
+  const game = await Games.get_game(id);
 
-  if (!game) {
+  if (game.isErr() || game.value.isNone()) {
     return res.status(404).json({ error: 'Game not found' });
   }
 
-  const updated_game = await getDatabase()?.updateGame({
-    id: parseInt(id),
-    name: name || game.name,
-    category: category || game.category,
-    description: description || game.description,
-    studio: studio || game.studio,
-    year: year || game.year
+  const updated_game = await Games.update_game({
+    id: id,
+    name: name || game.value.value.name,
+    category: category || game.value.value.category,
+    description: description || game.value.value.description,
+    studio: studio || game.value.value.studio,
+    year: year || game.value.value.year
   });
 
   if (!updated_game) {
@@ -214,32 +215,30 @@ async function patch_game_by_id(req: Request, res: Response)
 }
 
 async function get_game_rating(req: Request, res: Response) {
+    const { id } = req.params;
+    const ratings = await Games.get_ratings(parseInt(id));
 
-  const { id } = req.params;
-  const ratings = await getDatabase()?.get_ratings(parseInt(id));
-  
-    if (!ratings) {
-      return res.status(500).json({ error: 'Could not get ratings' });
+    if (ratings.isErr()) {
+        return res.status(500).json({ error: 'Could not get ratings' });
     }
-  
-    return res.json(ratings);
 
+    return res.json(ratings);
 }
 
 async function post_game_rating(req: Request, res: Response) {
-  const { id } = req.params;
-  const { rating } = req.body;
-  if (!rating) {
-    return res.status(400).json({ error: 'Missing required fields' });
-  }
+    const { id } = req.params;
+    const { rating } = req.body;
+    if (!rating) {
+        return res.status(400).json({ error: 'Missing required fields' });
+    }
 
-  const result = await getDatabase()?.insert_rating(parseInt(id), rating);
+    const result = await Games.insert_rating(parseInt(id), rating);
 
-  if (!result) {
-    return res.status(500).json({ error: 'Could not insert rating' });
-  }
+    if (result.isErr()) {
+        return res.status(500).json({ error: 'Could not insert rating' });
+    }
 
-  return res.json(result);
+    return res.json(result);
 }
 
 endpoints.forEach(endpoint => {
