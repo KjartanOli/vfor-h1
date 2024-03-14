@@ -6,6 +6,7 @@ import * as Games from '../lib/games.js';
 import { jwt_secret, token_lifetime } from '../app.js';
 import passport from 'passport';
 import { check_validation, game_id_validator } from '../lib/validators.js';
+import { matchedData } from 'express-validator';
 
 export const router = express.Router();
 
@@ -169,13 +170,9 @@ async function post_game(req: Request, res: Response) {
 }
 
 async function get_game_by_id(req: Request, res: Response) {
-  const id = parseInt(req.params.id, 10);
-  const game = await Games.get_game(id);
+  const data = matchedData(req);
 
-  if (game.isErr() || game.value.isNone()) {
-    return res.status(404).json({ error: 'Game not found' });
-  }
-  return res.json(game);
+  return res.json(data.game);
 }
 
 async function delete_game_by_id(req: Request, res: Response) {
