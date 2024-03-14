@@ -1,6 +1,6 @@
 import { Result, Err, Option, Some, None, Ok } from 'ts-results-es';
 import { getDatabase } from './db.js';
-import { Game } from './types';
+import { Game, Rating } from './types';
 
 const MAX_GAMES = 100;
 
@@ -62,7 +62,7 @@ export async function insert_game(game: Omit<Game, 'id'>): Promise<Result<Game, 
   const q = `
 INSERT INTO games (name, category, description, studio, year)
 VALUES ($1, $2, $3, $4, $5)
- RETURNING id, name, category, description, studio, year;
+RETURNING id, name, category, description, studio, year;
 `;
 
   const result = await db.query(q, [
@@ -80,6 +80,37 @@ VALUES ($1, $2, $3, $4, $5)
   return Ok(result.rows[0]);
 }
 
+export async function update_game(game: Game): Promise<Result<Game, string>> {
+  const db = getDatabase();
+  if (!db)
+    return Err('Could not get database connection');
+
+  const result = await db.query(`
+UPDATE games
+SET
+  name = $1,
+  category = $2,
+   description = $3,
+   studio = $4,
+   year = $5
+WHERE id = $6
+RETURNING id, name, category, description, studio, year;
+`, [
+    game.name,
+    game.category,
+    game.description,
+    game.studio,
+    game.year,
+    game.id
+]);
+
+  if (!result || result.rowCount !== 1) {
+    return Err(`unable to update game, ${{ result, game }}`);
+  }
+
+  return result.rows[0];
+}
+
 /**
  * Delete a game from the database.
  */
@@ -93,4 +124,40 @@ export async function delete_game(id: number): Promise<Result<true, string>> {
     return Err(`unable to delete game, ${{ result, id }}`);
 
   return Ok(true);
+}
+
+export async function get_ratings(game_id: number): Promise<Result<Array<Rating>, string>> {
+    const db = getDatabase();
+    if (!db)
+        return Err('Could not get database connection');
+
+    const result = await db.query(`
+SELECT game_id, rating
+FROM ratings
+WHERE game_id = $1
+`, [game_id]);
+    if (!result) {
+        return Err('Error retrieving ratings');
+    }
+    return Ok(result.rows);
+}
+
+export async function insert_rating(game_id: number, rating: number): Promise<Result<Rating, string>> {
+    const db = getDatabase();
+    if (!db)
+        return Err('Could not get database connection');
+
+    const result = await db.query(`
+INSERT INTO ratings (game_id, rating)
+VALUES ($1, $2)
+RETURNING game_id, rating
+`, [
+        game_id,
+        rating
+    ]);
+
+    if (!result || result.rowCount !== 1) {
+        return Err(`unable to insert rating ${{ result, rating }}`);
+    }
+    return Ok(result.rows[0]);
 }
