@@ -108,11 +108,17 @@ export class Database {
         studio TEXT NOT NULL,
         year INTEGER NOT NULL
       );
+      DROP TABLE IF EXISTS ratings;
+      CREATE TABLE IF NOT EXISTS ratings (
+        id SERIAL PRIMARY KEY,
+        game_id INTEGER NOT NULL,
+        rating INTEGER NOT NULL,
+        FOREIGN KEY (game_id) REFERENCES games (id)
+      );
     `;
     return this.query(q);
   }
 }
-
 
 let db: Database | null = null;
 

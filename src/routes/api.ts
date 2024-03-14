@@ -215,11 +215,30 @@ async function patch_game_by_id(req: Request, res: Response)
 }
 
 async function get_game_rating(req: Request, res: Response) {
-  res.json({ error: 'Not implemented' });
+    const { id } = req.params;
+    const ratings = await Games.get_ratings(parseInt(id));
+
+    if (ratings.isErr()) {
+        return res.status(500).json({ error: 'Could not get ratings' });
+    }
+
+    return res.json(ratings);
 }
 
 async function post_game_rating(req: Request, res: Response) {
-  res.json({ error: 'Not implemented' });
+    const { id } = req.params;
+    const { rating } = req.body;
+    if (!rating) {
+        return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    const result = await Games.insert_rating(parseInt(id), rating);
+
+    if (result.isErr()) {
+        return res.status(500).json({ error: 'Could not insert rating' });
+    }
+
+    return res.json(result);
 }
 
 endpoints.forEach(endpoint => {
