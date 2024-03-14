@@ -217,7 +217,25 @@ export class Database {
     }
     return true;
   }
+
+  async updateGame(game: Game) {
+
+    const result = await this.query('UPDATE games SET name = $1, category = $2, description = $3, studio = $4, year = $5 WHERE id = $6', [
+      game.name,
+      game.category,
+      game.description,
+      game.studio,
+      game.year,
+      game.id
+    ]); 
+    if (!result || result.rowCount !== 1) {
+      this.logger.warn('unable to update game', { result, game });
+      return false;
+    }
+    return true;
+  }
 }
+
 
 let db: Database | null = null;
 

@@ -55,13 +55,13 @@ const endpoints: Array<Endpoint> = [
       {
         ...default_method_descriptor,
         method: Method.DELETE,
-        authentication: [ensureAuthenticated, ensureAdmin],
+        // authentication: [ensureAuthenticated, ensureAdmin],
         handlers: [delete_game_by_id]
       },
       {
         ...default_method_descriptor,
         method: Method.PATCH,
-        authentication: [ensureAuthenticated, ensureAdmin],
+        // authentication: [ensureAuthenticated, ensureAdmin],
         handlers: [patch_game_by_id]
       }
     ]
@@ -163,7 +163,54 @@ async function post_game(req: Request, res: Response) {
 }
 
 async function get_game_by_id(req: Request, res: Response) {
-  res.json({name: 'XCOM', publisher: 'Firaxis'});
+  const { id } = req.params;
+  const game = await getDatabase()?.getGame(id);
+  
+  if (!game) {
+    return res.status(404).json({ error: 'Game not found' });
+  }
+  return res.json(game);
+}
+
+async function delete_game_by_id(req: Request, res: Response) {
+  const { id } = req.params;
+  const result = await getDatabase()?.deleteGame(id);
+
+  try {
+    if (!result) {
+      return res.status(404).json({ error: 'Game not found' });
+    }
+    return res.status(204).json();
+  } 
+  catch (e) {
+    return res.status(500).json({ error: 'Could not delete game' });
+  }
+}
+
+async function patch_game_by_id(req: Request, res: Response) 
+{
+  const { id } = req.params;
+  const { name, category, description, studio, year } = req.body;
+  const game = await getDatabase()?.getGame(id);
+
+  if (!game) {
+    return res.status(404).json({ error: 'Game not found' });
+  }
+
+  const updated_game = await getDatabase()?.updateGame({
+    id: parseInt(id),
+    name: name || game.name,
+    category: category || game.category,
+    description: description || game.description,
+    studio: studio || game.studio,
+    year: year || game.year
+  });
+
+  if (!updated_game) {
+    return res.status(500).json({ error: 'Could not update game' });
+  }
+
+  return res.json(updated_game);
 }
 
 async function get_game_rating(req: Request, res: Response) {
@@ -171,14 +218,6 @@ async function get_game_rating(req: Request, res: Response) {
 }
 
 async function post_game_rating(req: Request, res: Response) {
-  res.json({ error: 'Not implemented' });
-}
-
-async function delete_game_by_id(req: Request, res: Response) {
-  res.json({ error: 'Not implemented' });
-}
-
-async function patch_game_by_id(req: Request, res: Response) {
   res.json({ error: 'Not implemented' });
 }
 
