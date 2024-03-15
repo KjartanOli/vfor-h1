@@ -1,6 +1,8 @@
-import { body, query, param, validationResult } from 'express-validator';
+import { body, query, param, validationResult, CustomValidator } from 'express-validator';
 import * as Games from './games.js';
 import { Request, Response, NextFunction } from 'express';
+import { Result, Option } from 'ts-results-es';
+import { Game } from './types.js';
 
 export const number_validator = body('number')
     .isInt({ min: 1 })
@@ -10,21 +12,13 @@ export const validate_rating = body('rating')
     .isIn([0, 1, 2, 3, 4, 5])
     .withMessage('rating must be an integer, one of 0, 1, 2, 3, 4, 5');
 
-export const game_id_validator = param('game')
+export const game_id_validator = param('id')
   .isInt({ min: 1 })
   .withMessage('id must be an integer larger than 0')
   .bail()
   .toInt()
-  .custom(async (id) => {
-        const game = await Games.get_game(id);
-        if (game.isErr() || game.value.isNone())
-            return Promise.reject(`Game with ${id} does not exist`);
-        return Promise.resolve();
-  })
-  .bail()
-  .customSanitizer(async (id) => {
-    return (await Games.get_game(id)).unwrap().unwrap();
-  });
+  .custom(resource_exists<number, Game>(Games.get_game))
+  .bail();
 
 function string_validator(field: string, min: number, max: number) {
   return body(field)
@@ -78,4 +72,35 @@ export function check_validation(req: Request, res: Response, next: NextFunction
   }
 
   return next();
+}
+
+
+/**
+ * Checks if resource exists by running a lookup function for that resource. If
+ * the resource exists, the function should return the resource, it'll be added
+ * to the request object under `resource`.
+ * @param {function} fn Function to lookup the resource
+ * @returns {Promise<undefined|Error>} Rejected error if resource does not exist
+ */
+
+function resource_exists<Identifier,Value>(fn: (value: Identifier) => Promise<Result<Option<Value>, string>>): CustomValidator {
+  return (value: Identifier, { req, location, path }) => fn(value)
+    .then((result) => {
+      if (result.isErr())
+        return Promise.reject(new Error(result.error));
+      if (result.value.isNone())
+        return Promise.reject(new Error('not found'));
+
+      req.resource = result.value.value;
+      return Promise.resolve();
+    })
+    .catch((error) => {
+      if (error.message === 'not found') {
+        // This we just handled
+        return Promise.reject(error);
+      }
+
+      // This is something we did *not* handle, treat as 500 error
+      return Promise.reject(new Error('server error'));
+    });
 }

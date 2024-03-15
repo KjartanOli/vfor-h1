@@ -62,5 +62,8 @@ declare global {
       password: string,
       admin: boolean
     }
+    export interface Request {
+      resource?: any
+    }
   }
 }

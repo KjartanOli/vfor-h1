@@ -48,7 +48,7 @@ const endpoints: Array<Endpoint> = [
     ]
   },
   {
-    href: '/games/:game',
+    href: '/games/:id',
     methods: [
       {
         ...default_method_descriptor,
@@ -73,7 +73,7 @@ const endpoints: Array<Endpoint> = [
     ]
   },
   {
-    href: '/games/:game/rating',
+    href: '/games/:id/rating',
     methods: [
       {
         ...default_method_descriptor,
@@ -168,14 +168,11 @@ async function post_game(req: Request, res: Response) {
 }
 
 async function get_game_by_id(req: Request, res: Response) {
-  const data = matchedData(req);
-
-  return res.json(data.game);
+  return res.json(req.resource);
 }
 
 async function delete_game_by_id(req: Request, res: Response) {
-  const data = matchedData(req);
-  const result = await Games.delete_game(data.game.id);
+  const result = await Games.delete_game(req.resource);
 
     if (result.isErr())
       return res.status(500).json({ error: 'Could not delete game' });
