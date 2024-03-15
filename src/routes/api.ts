@@ -5,7 +5,7 @@ import * as users from '../lib/users.js';
 import * as Games from '../lib/games.js';
 import { jwt_secret, token_lifetime } from '../app.js';
 import passport from 'passport';
-import { check_validation, game_id_validator, new_game_validator, patch_game_validator } from '../lib/validators.js';
+import { check_validation, game_id_validator, new_game_validator, patch_game_validator, rating_validator } from '../lib/validators.js';
 import { matchedData } from 'express-validator';
 
 export const router = express.Router();
@@ -84,7 +84,8 @@ const endpoints: Array<Endpoint> = [
       {
         ...default_method_descriptor,
         method: Method.POST,
-        validation: [game_id_validator],
+        authentication: [ensureAuthenticated],
+        validation: [game_id_validator, rating_validator],
         handlers: [post_game_rating]
       }
     ]
@@ -201,30 +202,27 @@ async function patch_game_by_id(req: Request, res: Response)
 }
 
 async function get_game_rating(req: Request, res: Response) {
-    const { id } = req.params;
-    const ratings = await Games.get_ratings(parseInt(id));
+    const game = req.resource;
+    const ratings = await Games.get_ratings(game.id);
 
     if (ratings.isErr()) {
         return res.status(500).json({ error: 'Could not get ratings' });
     }
 
-    return res.json(ratings);
+    return res.json(ratings.value);
 }
 
 async function post_game_rating(req: Request, res: Response) {
-    const { id } = req.params;
-    const { rating } = req.body;
-    if (!rating) {
-        return res.status(400).json({ error: 'Missing required fields' });
-    }
+    const game = req.resource;
+    const { rating } = matchedData(req);
 
-    const result = await Games.insert_rating(parseInt(id), rating);
+    const result = await Games.insert_rating(game.id, rating);
 
     if (result.isErr()) {
         return res.status(500).json({ error: 'Could not insert rating' });
     }
 
-    return res.json(result);
+    return res.json(result.value);
 }
 
 endpoints.forEach(endpoint => {

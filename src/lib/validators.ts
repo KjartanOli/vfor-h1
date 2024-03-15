@@ -48,6 +48,9 @@ function game_validators() {
   ];
 }
 
+export const rating_validator = int_validator('rating', 0, 5)
+
+
 export const new_game_validator = game_validators().map(validator => validator.exists());
 export const patch_game_validator = game_validators().map(validator => validator.optional());
 
