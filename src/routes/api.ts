@@ -181,7 +181,8 @@ async function delete_game_by_id(req: Request, res: Response) {
 
 async function patch_game_by_id(req: Request, res: Response)
 {
-  const { game, name, category, description, studio, year } = matchedData(req);
+  const { name, category, description, studio, year } = matchedData(req);
+  const game = req.resource;
 
   const updated_game = await Games.update_game({
     id: game.id,
