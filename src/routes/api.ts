@@ -1,6 +1,6 @@
 import express, { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { Endpoint, Method, User, default_method_descriptor } from '../lib/types.js';
+import { Endpoint, Method, MethodDescriptor, RequestHandler, User, default_method_descriptor } from '../lib/types.js';
 import * as users from '../lib/users.js';
 import * as Games from '../lib/games.js';
 import { jwt_secret, token_lifetime } from '../app.js';
@@ -242,36 +242,23 @@ async function post_game_rating(req: Request, res: Response) {
 
 endpoints.forEach(endpoint => {
   endpoint.methods.forEach(method => {
-    switch (method.method) {
+    const routing_function = ((method: MethodDescriptor) => {
+      switch (method.method) {
         case Method.GET:
-          router.get(endpoint.href, ...[
-            ...method.authentication,
-            ...method.validation,
-            ...method.handlers
-          ]);
-          break;
+          return (href: string, ...handlers: Array<RequestHandler>) => router.get(href, handlers)
         case Method.POST:
-          router.post(endpoint.href, ...[
-            ...method.authentication,
-            ...method.validation,
-            ...method.handlers
-          ]);
-          break;
+          return (href: string, ...handlers: Array<RequestHandler>) => router.post(href, handlers)
         case Method.PATCH:
-          router.patch(endpoint.href, ...[
-            ...method.authentication,
-            ...method.validation,
-            ...method.handlers
-          ]);
-          break;
+          return (href: string, ...handlers: Array<RequestHandler>) => router.patch(href, handlers)
         case Method.DELETE:
-          router.delete(endpoint.href, ...[
+          return (href: string, ...handlers: Array<RequestHandler>) => router.delete(href, handlers)
+      }
+    })(method);
+    routing_function(endpoint.href, ...[
             ...method.authentication,
             ...method.validation,
             ...method.handlers
-          ]);
-          break;
-      }
+    ]);
   });
-})
+});
 
