@@ -176,18 +176,12 @@ async function get_game_by_id(req: Request, res: Response) {
 }
 
 async function delete_game_by_id(req: Request, res: Response) {
-  const id = parseInt(req.params.id, 10);
-  const result = await Games.delete_game(id);
+  const data = matchedData(req);
+  const result = await Games.delete_game(data.game.id);
 
-  try {
-    if (result.isErr()) {
-      return res.status(404).json({ error: 'Game not found' });
-    }
+    if (result.isErr())
+      return res.status(500).json({ error: 'Could not delete game' });
     return res.status(204).json();
-  }
-  catch (e) {
-    return res.status(500).json({ error: 'Could not delete game' });
-  }
 }
 
 async function patch_game_by_id(req: Request, res: Response)
