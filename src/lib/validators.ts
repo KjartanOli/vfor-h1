@@ -23,7 +23,7 @@ export const game_id_validator = param('game')
   })
   .bail()
   .customSanitizer(async (id) => {
-    return (await Games.get_game(id)).unwrap();
+    return (await Games.get_game(id)).unwrap().unwrap();
   });
 
 export function check_validation(req: Request, res: Response, next: NextFunction) {
