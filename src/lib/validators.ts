@@ -26,6 +26,34 @@ export const game_id_validator = param('game')
     return (await Games.get_game(id)).unwrap().unwrap();
   });
 
+function string_validator(field: string, min: number, max: number) {
+  return body(field)
+    .isString()
+    .trim()
+    .notEmpty()
+    .isLength({ min, max})
+    .withMessage(`${field} must be between ${min} and ${max} characters`);
+}
+
+function int_validator(field: string, min: number, max: number | null = null) {
+  return body(field)
+    .isInt(max ? { min, max} : { min })
+    .withMessage(max
+      ? `${field} must be between ${min} and ${max}`
+      : `${field} must be above ${min}`);
+}
+
+function game_validators() {
+  return [
+    string_validator('name', 1, 30),
+    string_validator('description', 0, 2048),
+    string_validator('category', 1, 10),
+    string_validator('studio', 1, 30),
+    int_validator('year', 1970),
+  ];
+}
+
+export const new_game_validator = game_validators().map(validator => validator.exists());
 export function check_validation(req: Request, res: Response, next: NextFunction) {
     const validation = validationResult(req);
 

@@ -5,7 +5,7 @@ import * as users from '../lib/users.js';
 import * as Games from '../lib/games.js';
 import { jwt_secret, token_lifetime } from '../app.js';
 import passport from 'passport';
-import { check_validation, game_id_validator } from '../lib/validators.js';
+import { check_validation, game_id_validator, new_game_validator } from '../lib/validators.js';
 import { matchedData } from 'express-validator';
 
 export const router = express.Router();
@@ -42,6 +42,7 @@ const endpoints: Array<Endpoint> = [
         ...default_method_descriptor,
         method: Method.POST,
         authentication: [ensureAuthenticated, ensureAdmin],
+        validation: [...new_game_validator],
         handlers: [post_game]
       }
     ]
@@ -149,10 +150,7 @@ async function get_games(req: Request, res: Response) {
 }
 
 async function post_game(req: Request, res: Response) {
-  const { name, category, description, studio, year } = req.body;
-  if (!name || !category || !description || !studio || !year) {
-    return res.status(400).json({ error: 'Missing required fields' });
-  }
+  const { name, category, description, studio, year} = matchedData(req);
 
   const game = await Games.insert_game({
     name,
