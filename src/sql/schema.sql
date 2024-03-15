@@ -16,3 +16,18 @@ CREATE TABLE IF NOT EXISTS ratings (
   game_id INTEGER NOT NULL REFERENCES games (id),
   rating INTEGER NOT NULL CHECK (rating >= 0 AND rating <= 5)
 );
+
+CREATE OR REPLACE FUNCTION delete_game_ratings()
+RETURNS TRIGGER AS $$
+BEGIN
+DELETE FROM ratings
+WHERE game_id = OLD.game_id;
+RETURN OLD;
+END;
+$$
+LANGUAGE plpgsql;
+
+CREATE OR REPLACE TRIGGER before_game_delete BEFORE DELETE ON games
+FOR EACH ROW
+EXECUTE FUNCTION delete_game_ratings();
+
