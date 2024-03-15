@@ -50,7 +50,8 @@ export interface Game {
   category: string,
   description: string,
   studio: string,
-  year: number
+  year: number,
+  image: string
 }
 
 export interface Rating {

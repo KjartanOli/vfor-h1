@@ -6,6 +6,8 @@ import * as Games from '../lib/games.js';
 import { jwt_secret, token_lifetime } from '../app.js';
 import passport from 'passport';
 import { getDatabase } from '../lib/db.js';
+import { uploadImage } from '../lib/cloudinary.js';
+import { logger } from '../lib/logger.js';
 
 export const router = express.Router();
 
@@ -143,9 +145,24 @@ async function get_games(req: Request, res: Response) {
 }
 
 async function post_game(req: Request, res: Response) {
-  const { name, category, description, studio, year } = req.body;
+  const { name, category, description, studio, year, image } = req.body;
   if (!name || !category || !description || !studio || !year) {
     return res.status(400).json({ error: 'Missing required fields' });
+  }
+
+  const imagePath = req.file?.path;
+
+  // TODO refactor into helper in cloudinary.js
+  let poster;
+  try {
+    const uploadResult = await uploadImage(imagePath ?? '');
+    if (!uploadResult || !uploadResult.secure_url) {
+      throw new Error('no secure_url from cloudinary upload');
+    }
+    poster = uploadResult.secure_url;
+  } catch (e) {
+    logger.error('Unable to upload file to cloudinary', e);
+    return res.status(500).end();
   }
 
   const game = await Games.insert_game({
@@ -153,7 +170,8 @@ async function post_game(req: Request, res: Response) {
     category,
     description,
     studio,
-    year
+    year,
+    image
   });
 
   if (game.isErr()) {
@@ -191,7 +209,7 @@ async function delete_game_by_id(req: Request, res: Response) {
 async function patch_game_by_id(req: Request, res: Response)
 {
   const id = parseInt(req.params.id, 10);
-  const { name, category, description, studio, year } = req.body;
+  const { name, category, description, studio, year, image } = req.body;
   const game = await Games.get_game(id);
 
   if (game.isErr() || game.value.isNone()) {
@@ -204,7 +222,8 @@ async function patch_game_by_id(req: Request, res: Response)
     category: category || game.value.value.category,
     description: description || game.value.value.description,
     studio: studio || game.value.value.studio,
-    year: year || game.value.value.year
+    year: year || game.value.value.year,
+    image: image || game.value.value.image
   });
 
   if (!updated_game) {

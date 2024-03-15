@@ -106,14 +106,16 @@ export class Database {
         category TEXT NOT NULL,
         description TEXT NOT NULL,
         studio TEXT NOT NULL,
-        year INTEGER NOT NULL
+        year INTEGER NOT NULL,
+        image VARCHAR(255)
       );
+
       DROP TABLE IF EXISTS ratings;
       CREATE TABLE IF NOT EXISTS ratings (
         id SERIAL PRIMARY KEY,
         game_id INTEGER NOT NULL,
         rating INTEGER NOT NULL,
-        FOREIGN KEY (game_id) REFERENCES games (id)
+        FOREIGN KEY (game_id) REFERENCES games (id) ON DELETE CASCADE
       );
     `;
     return this.query(q);
