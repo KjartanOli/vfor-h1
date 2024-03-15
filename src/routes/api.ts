@@ -1,6 +1,6 @@
-import express, { Request, Response, NextFunction } from 'express';
+import express, { Request, Response, NextFunction, RequestHandler } from 'express';
 import jwt from 'jsonwebtoken';
-import { Endpoint, Method, MethodDescriptor, RequestHandler, User, default_method_descriptor } from '../lib/types.js';
+import { Endpoint, Method, MethodDescriptor, User, default_method_descriptor } from '../lib/types.js';
 import * as users from '../lib/users.js';
 import * as Games from '../lib/games.js';
 import { jwt_secret, token_lifetime } from '../app.js';
