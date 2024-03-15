@@ -21,7 +21,7 @@ CREATE OR REPLACE FUNCTION delete_game_ratings()
 RETURNS TRIGGER AS $$
 BEGIN
 DELETE FROM ratings
-WHERE game_id = OLD.game_id;
+WHERE game_id = OLD.id;
 RETURN OLD;
 END;
 $$
