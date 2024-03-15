@@ -24,6 +24,7 @@ function string_validator(field: string, min: number, max: number) {
   return body(field)
     .isString()
     .trim()
+    .escape()
     .notEmpty()
     .isLength({ min, max})
     .withMessage(`${field} must be between ${min} and ${max} characters`);
