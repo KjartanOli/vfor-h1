@@ -54,6 +54,8 @@ function game_validators() {
 }
 
 export const new_game_validator = game_validators().map(validator => validator.exists());
+export const patch_game_validator = game_validators().map(validator => validator.optional());
+
 export function check_validation(req: Request, res: Response, next: NextFunction) {
     const validation = validationResult(req);
 

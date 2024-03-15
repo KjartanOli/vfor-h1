@@ -5,7 +5,7 @@ import * as users from '../lib/users.js';
 import * as Games from '../lib/games.js';
 import { jwt_secret, token_lifetime } from '../app.js';
 import passport from 'passport';
-import { check_validation, game_id_validator, new_game_validator } from '../lib/validators.js';
+import { check_validation, game_id_validator, new_game_validator, patch_game_validator } from '../lib/validators.js';
 import { matchedData } from 'express-validator';
 
 export const router = express.Router();
@@ -67,7 +67,7 @@ const endpoints: Array<Endpoint> = [
         ...default_method_descriptor,
         method: Method.PATCH,
         authentication: [ensureAuthenticated, ensureAdmin],
-        validation: [game_id_validator],
+        validation: [game_id_validator, ...patch_game_validator],
         handlers: [patch_game_by_id]
       }
     ]
@@ -184,21 +184,15 @@ async function delete_game_by_id(req: Request, res: Response) {
 
 async function patch_game_by_id(req: Request, res: Response)
 {
-  const id = parseInt(req.params.id, 10);
-  const { name, category, description, studio, year } = req.body;
-  const game = await Games.get_game(id);
-
-  if (game.isErr() || game.value.isNone()) {
-    return res.status(404).json({ error: 'Game not found' });
-  }
+  const { game, name, category, description, studio, year } = matchedData(req);
 
   const updated_game = await Games.update_game({
-    id: id,
-    name: name || game.value.value.name,
-    category: category || game.value.value.category,
-    description: description || game.value.value.description,
-    studio: studio || game.value.value.studio,
-    year: year || game.value.value.year
+    id: game.id,
+    name: name || game.name,
+    category: category || game.category,
+    description: description || game.description,
+    studio: studio || game.studio,
+    year: year || game.year
   });
 
   if (!updated_game) {
