@@ -54,6 +54,7 @@ export interface Game {
 }
 
 export interface Rating {
+  user_id: number,
   game_id: number,
   rating: number
 }

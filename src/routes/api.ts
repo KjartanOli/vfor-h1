@@ -1,6 +1,7 @@
 import express, { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { Endpoint, Method, User, default_method_descriptor } from '../lib/types.js';
+import * as t from 'typed-assert';
 import * as users from '../lib/users.js';
 import * as Games from '../lib/games.js';
 import { jwt_secret, token_lifetime } from '../app.js';
@@ -67,17 +68,18 @@ const endpoints: Array<Endpoint> = [
     ]
   },
   {
-    href: '/games/:id/rating',
+    href: '/games/:id/ratings',
     methods: [
       {
         ...default_method_descriptor,
         method: Method.GET,
-        handlers: [get_game_rating]
+        handlers: [get_game_ratings]
       },
       {
         ...default_method_descriptor,
         method: Method.POST,
-        handlers: [post_game_rating]
+        authentication: [ensureAuthenticated],
+        handlers: [post_game_ratings]
       }
     ]
   }
@@ -213,7 +215,7 @@ async function patch_game_by_id(req: Request, res: Response)
   return res.json(updated_game);
 }
 
-async function get_game_rating(req: Request, res: Response) {
+async function get_game_ratings(req: Request, res: Response) {
     const { id } = req.params;
     const ratings = await Games.get_ratings(parseInt(id));
 
@@ -221,17 +223,20 @@ async function get_game_rating(req: Request, res: Response) {
         return res.status(500).json({ error: 'Could not get ratings' });
     }
 
-    return res.json(ratings);
+    return res.json(ratings.value);
 }
 
-async function post_game_rating(req: Request, res: Response) {
+async function post_game_ratings(req: Request, res: Response) {
     const { id } = req.params;
     const { rating } = req.body;
     if (!rating) {
         return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    const result = await Games.insert_rating(parseInt(id), rating);
+  if (!req.user)
+    return res.status(401).json({ error: 'You must be logged in to perform this action' });
+
+  const result = await Games.insert_rating(req.user.id, parseInt(id), rating);
 
     if (result.isErr()) {
         return res.status(500).json({ error: 'Could not insert rating' });
