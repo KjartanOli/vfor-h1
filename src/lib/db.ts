@@ -1,6 +1,5 @@
 import pg from 'pg';
 import { ILogger, logger as loggerSingleton } from './logger.js';
-import { Game } from './types.js';
 import { environment } from './environment.js';
 import { readFile } from 'fs/promises';
 

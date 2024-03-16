@@ -3,8 +3,6 @@ import passport from 'passport';
 import { Strategy, ExtractJwt } from 'passport-jwt';
 import { router } from './routes/api.js';
 import * as users from './lib/users.js';
-import assert from 'assert';
-import { User } from './lib/types.js';
 
 const {
   PORT: port,
