@@ -4,6 +4,7 @@ import { Strategy, ExtractJwt } from 'passport-jwt';
 import { router } from './routes/api.js';
 import * as users from './lib/users.js';
 import assert from 'assert';
+import { User } from './lib/types.js';
 
 const {
   PORT: port,
@@ -32,12 +33,13 @@ const app = express();
 
 // TODO: Find the correct types for data and any
 async function strat(data: any, next: any) {
-    const user = await users.find_by_id(data.id);
-    if (user.isNone())
-      next(null, false);
+    // No idea why the second level of data is neccesary
+    const user = await users.find_by_id(data.data.id);
+    if (user.isErr() || user.value.isNone())
+        next(null, false);
     else
-      next(null, user.value);
-  }
+        next(null, user.value.value);
+}
 passport.use(new Strategy({
   jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
   secretOrKey: JWT_SECRET

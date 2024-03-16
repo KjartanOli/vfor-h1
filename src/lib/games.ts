@@ -132,7 +132,7 @@ export async function get_ratings(game_id: number): Promise<Result<Array<Rating>
         return Err('Could not get database connection');
 
     const result = await db.query(`
-SELECT game_id, rating
+SELECT user_id, game_id, rating
 FROM ratings
 WHERE game_id = $1
 `, [game_id]);
@@ -142,19 +142,20 @@ WHERE game_id = $1
     return Ok(result.rows);
 }
 
-export async function insert_rating(game_id: number, rating: number): Promise<Result<Rating, string>> {
+export async function insert_rating(user_id: number, game_id: number, rating: number): Promise<Result<Rating, string>> {
     const db = getDatabase();
     if (!db)
         return Err('Could not get database connection');
 
     const result = await db.query(`
-INSERT INTO ratings (game_id, rating)
-VALUES ($1, $2)
-RETURNING game_id, rating
+INSERT INTO ratings (user_id, game_id, rating)
+VALUES ($1, $2, $3)
+RETURNING user_id, game_id, rating
 `, [
-        game_id,
-        rating
-    ]);
+  user_id,
+  game_id,
+  rating
+]);
 
     if (!result || result.rowCount !== 1) {
         return Err(`unable to insert rating ${{ result, rating }}`);
