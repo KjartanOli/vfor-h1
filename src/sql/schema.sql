@@ -1,4 +1,5 @@
 DROP TABLE IF EXISTS ratings;
+DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS games;
 
 CREATE TABLE IF NOT EXISTS games (
@@ -54,4 +55,4 @@ FOR EACH ROW
 EXECUTE FUNCTION delete_user_ratings();
 
 INSERT INTO users (username, name, password, admin)
-VALUES ('admin', 'Admin', 'TODO: HASH this', true);
+VALUES ('admin', 'Admin', '$argon2id$v=19$m=19456,t=2,p=1$aqsMPVfdOwBeyngRoxTbFg$YX2YoRykR1MPAzP75E+UlCPL0GHtr/m0QzQVQoJcVeA', true);

@@ -1,7 +1,6 @@
 import express, { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { Endpoint, Method, User, default_method_descriptor } from '../lib/types.js';
-import * as t from 'typed-assert';
 import * as users from '../lib/users.js';
 import * as Games from '../lib/games.js';
 import { jwt_secret, token_lifetime } from '../app.js';
@@ -123,10 +122,12 @@ async function post_login(req: Request, res: Response) {
   const { username, password = null } = req.body;
 
   const user = await users.find_by_username(username);
-  if (user.isNone() || !await users.compare_passwords(password, user.value.password))
+  if (user.isErr())
+    return res.status(500).json({ error: 'Internal error' });
+  if (user.value.isNone() || !await users.compare_passwords(password, user.value.value))
     return res.status(401).json({ error: 'Incorrect username or password' });
 
-  const data = { id: user.value.id };
+  const data = { id: user.value.value.id };
   const options = { expiresIn: token_lifetime() };
   const token = jwt.sign({ data }, jwt_secret(), options);
 
