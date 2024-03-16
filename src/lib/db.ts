@@ -74,7 +74,7 @@ export class Database {
    */
   async query(
     query: string,
-    values: Array<string | number> = [],
+    values: Array<string | number> = []
   ): Promise<pg.QueryResult | null> {
     const client = await this.connect();
 
@@ -84,6 +84,32 @@ export class Database {
 
     try {
       const result = await client.query(query, values);
+      return result;
+    } catch (e) {
+      this.logger.error('Error running query', e);
+      return null;
+    } finally {
+      client.release();
+    }
+  }
+
+  async paged_query(
+    query: string,
+    offset: number,
+    limit: number,
+    values: Array<string | number> = []
+  ): Promise<pg.QueryResult | null> {
+    const client = await this.connect();
+    if (!client) {
+      return null;
+    }
+
+    const limit_arg = values.length + 1;
+    const offset_arg = limit_arg + 1;
+
+    const q = `${query} LIMIT $${limit_arg} OFFSET $${offset_arg}`;
+    try {
+      const result = await client.query(q, [...values, limit, offset]);
       return result;
     } catch (e) {
       this.logger.error('Error running query', e);

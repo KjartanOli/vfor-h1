@@ -2,13 +2,13 @@ import { Result, Err, Option, Some, None, Ok } from 'ts-results-es';
 import { getDatabase } from './db.js';
 import { Game, Rating, ResourceType } from './types.js';
 
-const MAX_GAMES = 100;
+const page_size = 10;
 
 /**
  * Get games from the database.
  * @param {number} [limit=MAX_GAMES] Number of games to get.
  */
-export async function get_games(limit: number = MAX_GAMES): Promise<Result<Array<Game>, string>> {
+export async function get_games(offset: number = 0, limit: number | null = page_size): Promise<Result<Array<Game>, string>> {
   const db = getDatabase();
 
   if (!db)
@@ -19,9 +19,9 @@ SELECT id, name, category, description, studio, year
 FROM games
 `;
 
-  const used_limit = Math.min(limit > 0 ? limit : MAX_GAMES, MAX_GAMES);
+  const used_limit = Math.min((limit && limit > 0) ? limit : page_size, page_size);
 
-  const results = await db.paged_query(q, used_limit);
+  const results = await db.paged_query(q, offset, used_limit);
 
   if (!results)
     return Err('Database error');
@@ -126,16 +126,17 @@ export async function delete_game(id: number): Promise<Result<true, string>> {
   return Ok(true);
 }
 
-export async function get_ratings(game_id: number): Promise<Result<Array<Rating>, string>> {
+export async function get_ratings(game_id: number, offset: number = 0, limit: number | null = page_size): Promise<Result<Array<Rating>, string>> {
     const db = getDatabase();
     if (!db)
         return Err('Could not get database connection');
 
-    const result = await db.query(`
+    const used_limit = Math.min((limit && limit > 0) ? limit : page_size, page_size);
+    const result = await db.paged_query(`
 SELECT user_id, game_id, rating
 FROM ratings
 WHERE game_id = $1
-`, [game_id]);
+`, offset, used_limit, [game_id]);
     if (!result) {
         return Err('Error retrieving ratings');
     }
