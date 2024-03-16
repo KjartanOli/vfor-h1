@@ -51,6 +51,12 @@ function game_validators() {
   ];
 }
 
+export const existing_user_validator = [
+  string_validator('username', 1, 30)
+    .custom(resource_exists<string, User>(Users.find_by_username)),
+  string_validator('password', 1)
+];
+
 export const rating_validator = int_validator('rating', 0, 5)
 
 

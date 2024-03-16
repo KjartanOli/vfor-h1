@@ -25,6 +25,7 @@ const endpoints: Array<Endpoint> = [
     methods: [
       {
         ...default_method_descriptor,
+        validation: [...existing_user_validator],
         method: Method.POST,
         handlers: [post_login]
       }
