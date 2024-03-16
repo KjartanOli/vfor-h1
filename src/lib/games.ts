@@ -1,6 +1,6 @@
 import { Result, Err, Option, Some, None, Ok } from 'ts-results-es';
 import { getDatabase } from './db.js';
-import { Game, Rating } from './types';
+import { Game, Rating, ResourceType } from './types.js';
 
 const MAX_GAMES = 100;
 
@@ -17,12 +17,11 @@ export async function get_games(limit: number = MAX_GAMES): Promise<Result<Array
   const q = `
 SELECT id, name, category, description, studio, year
 FROM games
-LIMIT $1
 `;
 
   const used_limit = Math.min(limit > 0 ? limit : MAX_GAMES, MAX_GAMES);
 
-  const results = await db.query(q, [used_limit.toString()]);
+  const results = await db.paged_query(q, used_limit);
 
   if (!results || results.rowCount === 0)
     return Ok([]);
@@ -48,7 +47,8 @@ WHERE id = $1
   if (!results || results.rowCount === 0)
     return Ok(None);
 
-  return Ok(Some(results.rows[0]));
+  const game: Game = { ...results.rows[0], type: ResourceType.GAME };
+  return Ok(Some(game));
 }
 
 /**
@@ -77,7 +77,7 @@ RETURNING id, name, category, description, studio, year;
     return Err(`unable to insert game, ${{ result, game }}`);
   }
 
-  return Ok(result.rows[0]);
+  return Ok({ ...result.rows[0], type: ResourceType.GAME });
 }
 
 export async function update_game(game: Omit<Game, 'type'>): Promise<Result<Game, string>> {
@@ -108,7 +108,7 @@ RETURNING id, name, category, description, studio, year;
     return Err(`unable to update game, ${{ result, game }}`);
   }
 
-  return result.rows[0];
+  return Ok({ ...result.rows[0], type: ResourceType.GAME });
 }
 
 /**
@@ -139,6 +139,7 @@ WHERE game_id = $1
     if (!result) {
         return Err('Error retrieving ratings');
     }
+
     return Ok(result.rows);
 }
 
