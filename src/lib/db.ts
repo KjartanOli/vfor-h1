@@ -2,6 +2,7 @@ import pg from 'pg';
 import { ILogger, logger as loggerSingleton } from './logger.js';
 import { Game } from './types.js';
 import { environment } from './environment.js';
+import { readFile } from 'fs/promises';
 
 /**
  * Database class.
@@ -98,24 +99,7 @@ export class Database {
    * Create the database schema.
    */
   async createSchema(): Promise<pg.QueryResult | null> {
-    const q = `
-      DROP TABLE IF EXISTS games;
-      CREATE TABLE IF NOT EXISTS games (
-        id SERIAL PRIMARY KEY,
-        name TEXT NOT NULL,
-        category TEXT NOT NULL,
-        description TEXT NOT NULL,
-        studio TEXT NOT NULL,
-        year INTEGER NOT NULL
-      );
-      DROP TABLE IF EXISTS ratings;
-      CREATE TABLE IF NOT EXISTS ratings (
-        id SERIAL PRIMARY KEY,
-        game_id INTEGER NOT NULL,
-        rating INTEGER NOT NULL,
-        FOREIGN KEY (game_id) REFERENCES games (id)
-      );
-    `;
+    const q = await readFile('src/sql/schema.sql', { encoding: 'utf8' });
     return this.query(q);
   }
 }
@@ -140,3 +124,4 @@ export function getDatabase() {
 
   return db;
 }
+

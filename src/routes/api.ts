@@ -73,7 +73,7 @@ const endpoints: Array<Endpoint> = [
     ]
   },
   {
-    href: '/games/:id/rating',
+    href: '/games/:id/ratings',
     methods: [
       {
         ...default_method_descriptor,
@@ -130,10 +130,12 @@ async function post_login(req: Request, res: Response) {
   const { username, password = null } = req.body;
 
   const user = await users.find_by_username(username);
-  if (user.isNone() || !await users.compare_passwords(password, user.value.password))
+  if (user.isErr())
+    return res.status(500).json({ error: 'Internal error' });
+  if (user.value.isNone() || !await users.compare_passwords(password, user.value.value))
     return res.status(401).json({ error: 'Incorrect username or password' });
 
-  const data = { id: user.value.id };
+  const data = { id: user.value.value.id };
   const options = { expiresIn: token_lifetime() };
   const token = jwt.sign({ data }, jwt_secret(), options);
 
