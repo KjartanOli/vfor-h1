@@ -21,14 +21,16 @@ export const game_id_validator = param('id')
   .custom(resource_exists<number, Game>(Games.get_game))
   .bail();
 
-function string_validator(field: string, min: number, max: number) {
+function string_validator(field: string, min: number, max: number | null = null) {
   return body(field)
     .isString()
     .trim()
     .escape()
     .notEmpty()
-    .isLength({ min, max})
-    .withMessage(`${field} must be between ${min} and ${max} characters`);
+    .isLength(max ? { min, max} : { min })
+    .withMessage(max
+      ? `${field} must be between ${min} and ${max} characters`
+      : `${field} must be at least ${min} characters`);
 }
 
 function int_validator(field: string, min: number, max: number | null = null) {
