@@ -1,11 +1,11 @@
 import express, { Request, Response, NextFunction, RequestHandler } from 'express';
 import jwt from 'jsonwebtoken';
-import { Endpoint, Method, MethodDescriptor, User, default_method_descriptor } from '../lib/types.js';
+import { Endpoint, Method, MethodDescriptor, ResourceType, User, default_method_descriptor } from '../lib/types.js';
 import * as users from '../lib/users.js';
 import * as Games from '../lib/games.js';
 import { jwt_secret, token_lifetime } from '../app.js';
 import passport from 'passport';
-import { check_validation, game_id_validator, new_game_validator, patch_game_validator, rating_validator } from '../lib/validators.js';
+import { check_validation, existing_user_validator, game_id_validator, new_game_validator, patch_game_validator, rating_validator } from '../lib/validators.js';
 import { matchedData } from 'express-validator';
 
 export const router = express.Router();
@@ -127,15 +127,16 @@ async function get_index(req: Request, res: Response) {
 }
 
 async function post_login(req: Request, res: Response) {
-  const { username, password = null } = req.body;
-
-  const user = await users.find_by_username(username);
-  if (user.isErr())
+  if (req.resource?.type !== ResourceType.USER)
     return res.status(500).json({ error: 'Internal error' });
-  if (user.value.isNone() || !await users.compare_passwords(password, user.value.value))
+
+  const user = req.resource;
+  const { password } = matchedData(req);
+
+  if (!await users.compare_passwords(password, user))
     return res.status(401).json({ error: 'Incorrect username or password' });
 
-  const data = { id: user.value.value.id };
+  const data = { id: user.id };
   const options = { expiresIn: token_lifetime() };
   const token = jwt.sign({ data }, jwt_secret(), options);
 
@@ -171,39 +172,50 @@ async function post_game(req: Request, res: Response) {
 }
 
 async function get_game_by_id(req: Request, res: Response) {
-  return res.json(req.resource);
+    if (req.resource?.type !== ResourceType.GAME)
+        return res.status(500).json({ error: 'Internal error' });
+
+    return res.json(req.resource);
 }
 
 async function delete_game_by_id(req: Request, res: Response) {
-  const result = await Games.delete_game(req.resource);
+      if (req.resource?.type !== ResourceType.GAME)
+        return res.status(500).json({ error: 'Internal error' });
+
+  const result = await Games.delete_game(req.resource.id);
 
     if (result.isErr())
       return res.status(500).json({ error: 'Could not delete game' });
     return res.status(204).json();
 }
 
-async function patch_game_by_id(req: Request, res: Response)
-{
-  const { name, category, description, studio, year } = matchedData(req);
-  const game = req.resource;
+async function patch_game_by_id(req: Request, res: Response) {
+    if (req.resource?.type !== ResourceType.GAME)
+        return res.status(500).json({ error: 'Internal error' });
 
-  const updated_game = await Games.update_game({
-    id: game.id,
-    name: name || game.name,
-    category: category || game.category,
-    description: description || game.description,
-    studio: studio || game.studio,
-    year: year || game.year
-  });
+    const { name, category, description, studio, year } = matchedData(req);
+    const game = req.resource;
 
-  if (!updated_game) {
-    return res.status(500).json({ error: 'Could not update game' });
-  }
+    const updated_game = await Games.update_game({
+        id: game.id,
+        name: name || game.name,
+        category: category || game.category,
+        description: description || game.description,
+        studio: studio || game.studio,
+        year: year || game.year
+    });
 
-  return res.json(updated_game);
+    if (!updated_game) {
+        return res.status(500).json({ error: 'Could not update game' });
+    }
+
+    return res.json(updated_game);
 }
 
 async function get_game_ratings(req: Request, res: Response) {
+      if (req.resource?.type !== ResourceType.GAME)
+        return res.status(500).json({ error: 'Internal error' });
+
     const game = req.resource;
     const ratings = await Games.get_ratings(game.id);
 
@@ -215,6 +227,9 @@ async function get_game_ratings(req: Request, res: Response) {
 }
 
 async function post_game_ratings(req: Request, res: Response) {
+      if (req.resource?.type !== ResourceType.GAME)
+        return res.status(500).json({ error: 'Internal error' });
+
   const game = req.resource;
   const user = req.user;
   const { rating } = matchedData(req);

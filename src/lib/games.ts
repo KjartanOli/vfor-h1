@@ -54,7 +54,7 @@ WHERE id = $1
 /**
  * Insert a game into the database.
  */
-export async function insert_game(game: Omit<Game, 'id'>): Promise<Result<Game, string>> {
+export async function insert_game(game: Omit<Omit<Game, 'id'>, 'type'>): Promise<Result<Game, string>> {
   const db = getDatabase();
   if (!db)
     return Err('Could not get database connection');
@@ -80,7 +80,7 @@ RETURNING id, name, category, description, studio, year;
   return Ok(result.rows[0]);
 }
 
-export async function update_game(game: Game): Promise<Result<Game, string>> {
+export async function update_game(game: Omit<Game, 'type'>): Promise<Result<Game, string>> {
   const db = getDatabase();
   if (!db)
     return Err('Could not get database connection');

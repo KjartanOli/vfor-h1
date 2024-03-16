@@ -1,8 +1,9 @@
 import { body, query, param, validationResult, CustomValidator } from 'express-validator';
 import * as Games from './games.js';
+import * as Users from './users.js';
 import { Request, Response, NextFunction } from 'express';
 import { Result, Option } from 'ts-results-es';
-import { Game } from './types.js';
+import { Game, User } from './types.js';
 
 export const number_validator = body('number')
     .isInt({ min: 1 })
