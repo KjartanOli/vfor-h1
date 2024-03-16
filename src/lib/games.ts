@@ -23,8 +23,8 @@ FROM games
 
   const results = await db.paged_query(q, used_limit);
 
-  if (!results || results.rowCount === 0)
-    return Ok([]);
+  if (!results)
+    return Err('Database error');
 
   return Ok(results.rows);
 }
