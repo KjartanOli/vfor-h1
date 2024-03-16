@@ -50,3 +50,22 @@ export async function compare_passwords(
   return argon.verify(user.password, password)
 }
 
+export async function create(user: Omit<Omit<Omit<User, 'id'>, 'admin'>, 'type'>): Promise<Result<User, string>> {
+  const hash = await argon.hash(user.password);
+  const db = getDatabase();
+  if (!db)
+    return Err('Could not get database connection');
+
+  const q = `
+INSERT INTO users(username, name, password)
+VALUES ($1,$2,$3)
+RETURNING id, username, name, password, admin;
+`;
+
+  const result = await db.query(q, [user.username, user.name, hash]);
+
+  if (!result || result.rowCount !== 1)
+    return Err('Error inserting user');
+
+  return Ok(result.rows[0]);
+}

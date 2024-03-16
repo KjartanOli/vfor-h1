@@ -5,7 +5,7 @@ import * as users from '../lib/users.js';
 import * as Games from '../lib/games.js';
 import { jwt_secret, token_lifetime } from '../app.js';
 import passport from 'passport';
-import { check_validation, existing_user_validator, game_id_validator, new_game_validator, patch_game_validator, rating_validator } from '../lib/validators.js';
+import { check_validation, existing_user_validator, game_id_validator, new_game_validator, new_user_validator, patch_game_validator, rating_validator } from '../lib/validators.js';
 import { matchedData } from 'express-validator';
 
 export const router = express.Router();
@@ -28,6 +28,17 @@ const endpoints: Array<Endpoint> = [
         validation: [...existing_user_validator],
         method: Method.POST,
         handlers: [post_login]
+      }
+    ]
+  },
+  {
+    href: '/register',
+    methods: [
+      {
+        ...default_method_descriptor,
+        method: Method.POST,
+        validation: [...new_user_validator],
+        handlers: [post_register, post_login]
       }
     ]
   },
@@ -142,6 +153,21 @@ async function post_login(req: Request, res: Response) {
   const token = jwt.sign({ data }, jwt_secret(), options);
 
   return res.json({ token });
+}
+
+async function post_register(req: Request, res: Response, next: NextFunction) {
+  const { username, name, password } = matchedData(req);
+
+  const result = await users.create({
+    username, name, password
+  });
+
+  if (result.isErr())
+    return res.status(500).json({ error: 'Internal error' });
+
+  req.resource = result.value;
+  req.resource.type = ResourceType.USER;
+  return next();
 }
 
 async function get_games(req: Request, res: Response) {
