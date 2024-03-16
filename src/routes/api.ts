@@ -1,10 +1,12 @@
-import express, { Request, Response, NextFunction } from 'express';
+import express, { Request, Response, NextFunction, RequestHandler } from 'express';
 import jwt from 'jsonwebtoken';
-import { Endpoint, Method, User, default_method_descriptor } from '../lib/types.js';
+import { Endpoint, Method, MethodDescriptor, User, default_method_descriptor } from '../lib/types.js';
 import * as users from '../lib/users.js';
 import * as Games from '../lib/games.js';
 import { jwt_secret, token_lifetime } from '../app.js';
 import passport from 'passport';
+import { check_validation, game_id_validator, new_game_validator, patch_game_validator, rating_validator } from '../lib/validators.js';
+import { matchedData } from 'express-validator';
 
 export const router = express.Router();
 
@@ -40,6 +42,7 @@ const endpoints: Array<Endpoint> = [
         ...default_method_descriptor,
         method: Method.POST,
         authentication: [ensureAuthenticated, ensureAdmin],
+        validation: [...new_game_validator],
         handlers: [post_game]
       }
     ]
@@ -50,18 +53,21 @@ const endpoints: Array<Endpoint> = [
       {
         ...default_method_descriptor,
         method: Method.GET,
+        validation: [game_id_validator],
         handlers: [get_game_by_id]
       },
       {
         ...default_method_descriptor,
         method: Method.DELETE,
         authentication: [ensureAuthenticated, ensureAdmin],
+        validation: [game_id_validator],
         handlers: [delete_game_by_id]
       },
       {
         ...default_method_descriptor,
         method: Method.PATCH,
         authentication: [ensureAuthenticated, ensureAdmin],
+        validation: [game_id_validator, ...patch_game_validator],
         handlers: [patch_game_by_id]
       }
     ]
@@ -72,12 +78,14 @@ const endpoints: Array<Endpoint> = [
       {
         ...default_method_descriptor,
         method: Method.GET,
+        validation: [game_id_validator],
         handlers: [get_game_ratings]
       },
       {
         ...default_method_descriptor,
         method: Method.POST,
         authentication: [ensureAuthenticated],
+        validation: [game_id_validator, rating_validator],
         handlers: [post_game_ratings]
       }
     ]
@@ -145,10 +153,7 @@ async function get_games(req: Request, res: Response) {
 }
 
 async function post_game(req: Request, res: Response) {
-  const { name, category, description, studio, year } = req.body;
-  if (!name || !category || !description || !studio || !year) {
-    return res.status(400).json({ error: 'Missing required fields' });
-  }
+  const { name, category, description, studio, year} = matchedData(req);
 
   const game = await Games.insert_game({
     name,
@@ -166,47 +171,29 @@ async function post_game(req: Request, res: Response) {
 }
 
 async function get_game_by_id(req: Request, res: Response) {
-  const id = parseInt(req.params.id, 10);
-  const game = await Games.get_game(id);
-
-  if (game.isErr() || game.value.isNone()) {
-    return res.status(404).json({ error: 'Game not found' });
-  }
-  return res.json(game);
+  return res.json(req.resource);
 }
 
 async function delete_game_by_id(req: Request, res: Response) {
-  const id = parseInt(req.params.id, 10);
-  const result = await Games.delete_game(id);
+  const result = await Games.delete_game(req.resource);
 
-  try {
-    if (result.isErr()) {
-      return res.status(404).json({ error: 'Game not found' });
-    }
+    if (result.isErr())
+      return res.status(500).json({ error: 'Could not delete game' });
     return res.status(204).json();
-  }
-  catch (e) {
-    return res.status(500).json({ error: 'Could not delete game' });
-  }
 }
 
 async function patch_game_by_id(req: Request, res: Response)
 {
-  const id = parseInt(req.params.id, 10);
-  const { name, category, description, studio, year } = req.body;
-  const game = await Games.get_game(id);
-
-  if (game.isErr() || game.value.isNone()) {
-    return res.status(404).json({ error: 'Game not found' });
-  }
+  const { name, category, description, studio, year } = matchedData(req);
+  const game = req.resource;
 
   const updated_game = await Games.update_game({
-    id: id,
-    name: name || game.value.value.name,
-    category: category || game.value.value.category,
-    description: description || game.value.value.description,
-    studio: studio || game.value.value.studio,
-    year: year || game.value.value.year
+    id: game.id,
+    name: name || game.name,
+    category: category || game.category,
+    description: description || game.description,
+    studio: studio || game.studio,
+    year: year || game.year
   });
 
   if (!updated_game) {
@@ -217,8 +204,8 @@ async function patch_game_by_id(req: Request, res: Response)
 }
 
 async function get_game_ratings(req: Request, res: Response) {
-    const { id } = req.params;
-    const ratings = await Games.get_ratings(parseInt(id));
+    const game = req.resource;
+    const ratings = await Games.get_ratings(game.id);
 
     if (ratings.isErr()) {
         return res.status(500).json({ error: 'Could not get ratings' });
@@ -228,56 +215,45 @@ async function get_game_ratings(req: Request, res: Response) {
 }
 
 async function post_game_ratings(req: Request, res: Response) {
-    const { id } = req.params;
-    const { rating } = req.body;
-    if (!rating) {
-        return res.status(400).json({ error: 'Missing required fields' });
-    }
+  const game = req.resource;
+  const user = req.user;
+  const { rating } = matchedData(req);
 
-  if (!req.user)
+  // This condition should newer be false because the authentication
+  // handlers should prevent ever reaching this function if the user
+  // is not authenticated but the compiler can't see that.
+  if (!user)
     return res.status(401).json({ error: 'You must be logged in to perform this action' });
 
-  const result = await Games.insert_rating(req.user.id, parseInt(id), rating);
+  const result = await Games.insert_rating(user.id, game.id, rating);
 
     if (result.isErr()) {
         return res.status(500).json({ error: 'Could not insert rating' });
     }
 
-    return res.json(result);
+    return res.json(result.value);
 }
 
 endpoints.forEach(endpoint => {
   endpoint.methods.forEach(method => {
-    switch (method.method) {
+    const routing_function = ((method: MethodDescriptor) => {
+      switch (method.method) {
         case Method.GET:
-          router.get(endpoint.href, ...[
-            ...method.authentication,
-            ...method.validation,
-            ...method.handlers
-          ]);
-          break;
+          return (href: string, ...handlers: Array<RequestHandler>) => router.get(href, handlers)
         case Method.POST:
-          router.post(endpoint.href, ...[
-            ...method.authentication,
-            ...method.validation,
-            ...method.handlers
-          ]);
-          break;
+          return (href: string, ...handlers: Array<RequestHandler>) => router.post(href, handlers)
         case Method.PATCH:
-          router.patch(endpoint.href, ...[
-            ...method.authentication,
-            ...method.validation,
-            ...method.handlers
-          ]);
-          break;
+          return (href: string, ...handlers: Array<RequestHandler>) => router.patch(href, handlers)
         case Method.DELETE:
-          router.delete(endpoint.href, ...[
+          return (href: string, ...handlers: Array<RequestHandler>) => router.delete(href, handlers)
+      }
+    })(method);
+    routing_function(endpoint.href, ...[
             ...method.authentication,
             ...method.validation,
+            check_validation,
             ...method.handlers
-          ]);
-          break;
-      }
+    ]);
   });
-})
+});
 

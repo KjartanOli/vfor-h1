@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import { RequestHandler } from 'express';
 
 export enum Method {
   GET,
@@ -7,15 +7,10 @@ export enum Method {
   DELETE
 }
 
-export type Middleware = (req: Request, res: Response, next: NextFunction) => void;
-export type Handler = (req: Request, res: Response) => void;
-
-export type RequestHandler = Handler | Middleware;
-
 export interface MethodDescriptor {
   method: Method,
-  authentication: Array<Middleware>,
-  validation: Array<Middleware>,
+  authentication: Array<RequestHandler>,
+  validation: Array<RequestHandler>,
   handlers: Array<RequestHandler>
 };
 
@@ -67,6 +62,9 @@ declare global {
       name: string
       password: string,
       admin: boolean
+    }
+    export interface Request {
+      resource?: any
     }
   }
 }
