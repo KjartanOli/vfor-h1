@@ -8,7 +8,8 @@ CREATE TABLE IF NOT EXISTS games (
   category VARCHAR(10) NOT NULL,
   description TEXT NOT NULL,
   studio VARCHAR(30) NOT NULL,
-  year INTEGER NOT NULL
+  year INTEGER NOT NULL,
+  image VARCHAR(255)
 );
 
 CREATE TABLE IF NOT EXISTS users (

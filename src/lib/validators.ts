@@ -48,6 +48,7 @@ function game_validators() {
     string_validator('category', 1, 10),
     string_validator('studio', 1, 30),
     int_validator('year', 1970),
+    string_validator('image', 0, 2048)
   ];
 }
 

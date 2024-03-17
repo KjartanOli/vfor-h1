@@ -60,6 +60,21 @@ export async function insert_game(game: Omit<Omit<Game, 'id'>, 'type'>): Promise
   if (!db)
     return Err('Could not get database connection');
 
+  if (game.image) {
+    console.log('game', game);
+    try {
+      const image_url = await uploadImage(game.image);
+      console.log('game.image', image_url);
+      if (image_url?.isErr()) {
+        return Err(image_url.error);
+      }
+      game.image = image_url?.value;
+    } catch(e) {
+      console.error(e);
+      return Err('Could not upload image');
+    }
+  }
+
   const q = `
 INSERT INTO games (name, category, description, studio, year, image)
 VALUES ($1, $2, $3, $4, $5, $6)
@@ -86,6 +101,7 @@ export async function update_game(game: Omit<Game, 'type'>): Promise<Result<Game
   const db = getDatabase();
   if (!db)
     return Err('Could not get database connection');
+  
 
   const result = await db.query(`
 UPDATE games

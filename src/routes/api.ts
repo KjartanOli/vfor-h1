@@ -55,7 +55,7 @@ const endpoints: Array<Endpoint> = [
       {
         ...default_method_descriptor,
         method: Method.POST,
-        authentication: [ensureAuthenticated, ensureAdmin],
+        //authentication: [ensureAuthenticated, ensureAdmin],
         validation: [...new_game_validator],
         handlers: [post_game]
       }
@@ -240,7 +240,7 @@ async function patch_game_by_id(req: Request, res: Response) {
         description: description || game.description,
         studio: studio || game.studio,
         year: year || game.year,
-        image: image || game.value.value.image
+        image: image || game.image
     });
 
     if (!updated_game) {
