@@ -8,7 +8,8 @@ import * as users from './lib/users.js';
 const {
   PORT: port,
   JWT_SECRET,
-  DATABASE_URL
+  DATABASE_URL,
+  CLOUDINARY_URL
 } = process.env;
 
 if (!JWT_SECRET) {
@@ -27,6 +28,10 @@ export const jwt_secret = (): string => {
 export const token_lifetime = (): number => {
   return TOKEN_LIFETIME;
 }
+
+// export const cloudinary_url = (): string => {
+//   return CLOUDINARY_URL;
+// }
 
 const app = express();
 

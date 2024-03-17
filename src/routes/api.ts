@@ -9,6 +9,7 @@ import { check_validation, existing_user_validator, game_id_validator, new_game_
 import { uploadImage } from '../lib/cloudinary.js';
 import { logger } from '../lib/logger.js';
 import { matchedData } from 'express-validator';
+import { decodeHtmlEntities } from '../lib/utils.js';
 
 export const router = express.Router();
 
@@ -55,7 +56,7 @@ const endpoints: Array<Endpoint> = [
       {
         ...default_method_descriptor,
         method: Method.POST,
-        //authentication: [ensureAuthenticated, ensureAdmin],
+        authentication: [ensureAuthenticated, ensureAdmin],
         validation: [...new_game_validator],
         handlers: [post_game]
       }
@@ -198,7 +199,7 @@ async function post_game(req: Request, res: Response) {
     description,
     studio,
     year,
-    image
+    image: decodeHtmlEntities(image)
   });
 
   if (game.isErr()) {

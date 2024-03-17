@@ -2,6 +2,7 @@ import { Result, Err, Option, Some, None, Ok } from 'ts-results-es';
 import { getDatabase } from './db.js';
 import { Game, Rating, ResourceType } from './types.js';
 import { uploadImage } from './cloudinary.js';
+import { UploadApiResponse } from 'cloudinary';
 
 const page_size = 10;
 
@@ -61,14 +62,12 @@ export async function insert_game(game: Omit<Omit<Game, 'id'>, 'type'>): Promise
     return Err('Could not get database connection');
 
   if (game.image) {
-    console.log('game', game);
     try {
-      const image_url = await uploadImage(game.image);
-      console.log('game.image', image_url);
-      if (image_url?.isErr()) {
-        return Err(image_url.error);
+      const uploadImageResponse: UploadApiResponse | undefined = await uploadImage(new URL(game.image).href);
+      if (!uploadImageResponse) {
+        return Err('Could not upload image');
       }
-      game.image = image_url?.value;
+      game.image = uploadImageResponse.url;
     } catch(e) {
       console.error(e);
       return Err('Could not upload image');

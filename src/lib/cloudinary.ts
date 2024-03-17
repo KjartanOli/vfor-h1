@@ -5,6 +5,10 @@ import dotenv from 'dotenv';
 
 
 dotenv.config();
+console.log(process.env.CLOUDINARY_URL)
+cloudinary.config({
+  cloudinary_url: process.env.CLOUDINARY_URL,
+})
 
 const resourcesAsync = util.promisify(cloudinary.api.resources);
 const uploadAsync = util.promisify(cloudinary.uploader.upload);
