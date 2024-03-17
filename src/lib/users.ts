@@ -1,6 +1,6 @@
 import { Option, Some, None, Result, Err, Ok } from 'ts-results-es';
 import { Argon2id } from 'oslo/password';
-import { User } from './types';
+import { ResourceType, User } from './types.js';
 import { getDatabase } from './db.js';
 
 const argon = new Argon2id();
@@ -21,7 +21,8 @@ WHERE id = $1
     if (!result || result.rowCount !== 1)
         return Ok(None);
 
-    return Ok(Some(result.rows[0]));
+  const user: User = { ...result.rows[0], type: ResourceType.USER};
+    return Ok(Some(user));
 }
 
 export async function find_by_username(username: string): Promise<Result<Option<User>, string>> {
@@ -40,7 +41,8 @@ WHERE username = $1
   if (!result || result.rowCount !== 1)
     return Ok(None);
 
-  return Ok(Some(result.rows[0]));
+    const user: User = { ...result.rows[0], type: ResourceType.USER};
+  return Ok(Some(user));
 }
 
 export async function compare_passwords(

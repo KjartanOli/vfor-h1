@@ -1,10 +1,9 @@
 import express from 'express';
+import paginate from 'express-paginate';
 import passport from 'passport';
 import { Strategy, ExtractJwt } from 'passport-jwt';
 import { router } from './routes/api.js';
 import * as users from './lib/users.js';
-import assert from 'assert';
-import { User } from './lib/types.js';
 
 const {
   PORT: port,
@@ -49,8 +48,9 @@ passport.use(new Strategy({
 
 
 app.get('/');
-app.use(express.json())
-app.use(passport.initialize())
+app.use(express.json());
+app.use(passport.initialize());
+app.use(paginate.middleware());
 app.use(router);
 
 app.listen(port, () => {

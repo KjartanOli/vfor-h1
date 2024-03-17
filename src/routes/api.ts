@@ -171,7 +171,14 @@ async function post_register(req: Request, res: Response, next: NextFunction) {
 }
 
 async function get_games(req: Request, res: Response) {
-  const games = await Games.get_games();
+  console.log(req.query.limit, typeof req.query.limit)
+  const limit = (typeof req.query.limit === 'number')
+    ? req.query.limit
+    : ((req.query.limit && typeof req.query.limit === 'string')
+      ? parseInt(req.query.limit, 10)
+      : null);
+  console.log(limit)
+  const games = await Games.get_games(req.skip, limit || null);
 
   if (games.isErr()) {
     return res.status(500).json({ error: 'Could not get games' });
