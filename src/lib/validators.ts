@@ -1,8 +1,9 @@
 import { body, query, param, validationResult, CustomValidator } from 'express-validator';
 import * as Games from './games.js';
+import * as Users from './users.js';
 import { Request, Response, NextFunction } from 'express';
 import { Result, Option } from 'ts-results-es';
-import { Game } from './types.js';
+import { Game, User } from './types.js';
 
 export const number_validator = body('number')
     .isInt({ min: 1 })
@@ -20,14 +21,16 @@ export const game_id_validator = param('id')
   .custom(resource_exists<number, Game>(Games.get_game))
   .bail();
 
-function string_validator(field: string, min: number, max: number) {
+function string_validator(field: string, min: number, max: number | null = null) {
   return body(field)
     .isString()
     .trim()
     .escape()
     .notEmpty()
-    .isLength({ min, max})
-    .withMessage(`${field} must be between ${min} and ${max} characters`);
+    .isLength(max ? { min, max} : { min })
+    .withMessage(max
+      ? `${field} must be between ${min} and ${max} characters`
+      : `${field} must be at least ${min} characters`);
 }
 
 function int_validator(field: string, min: number, max: number | null = null) {
@@ -47,6 +50,20 @@ function game_validators() {
     int_validator('year', 1970),
   ];
 }
+
+export const existing_user_validator = [
+  string_validator('username', 1, 30)
+    .custom(resource_exists<string, User>(Users.find_by_username)),
+  string_validator('password', 1)
+];
+
+export const new_user_validator = [
+  string_validator('username', 1, 30)
+    .not()
+    .custom(resource_exists<string, User>(Users.find_by_username)),
+  string_validator('name', 1, 30),
+  string_validator('password', 1)
+]
 
 export const rating_validator = int_validator('rating', 0, 5)
 

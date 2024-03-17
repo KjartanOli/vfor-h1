@@ -31,12 +31,18 @@ export interface Endpoint {
   methods: Array<MethodDescriptor>
 }
 
+export enum ResourceType {
+  USER,
+  GAME
+}
+
 export interface User {
   id: number,
   username: string,
-  name: string
+  name: string,
   password: string,
-  admin: boolean
+  admin: boolean,
+  type: ResourceType.USER,
 }
 
 export interface Game {
@@ -45,7 +51,8 @@ export interface Game {
   category: string,
   description: string,
   studio: string,
-  year: number
+  year: number,
+  type: ResourceType.GAME
 }
 
 export interface Rating {
@@ -59,12 +66,13 @@ declare global {
     interface User {
       id: number,
       username: string,
-      name: string
+      name: string,
       password: string,
-      admin: boolean
+      admin: boolean,
+      type: ResourceType.USER,
     }
     export interface Request {
-      resource?: any
+      resource?: User | Game
     }
   }
 }
