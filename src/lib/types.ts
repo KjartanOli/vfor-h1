@@ -52,6 +52,7 @@ export interface Game {
   description: string,
   studio: string,
   year: number,
+  image: string
   type: ResourceType.GAME
 }
 

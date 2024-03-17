@@ -6,7 +6,10 @@ import * as Games from '../lib/games.js';
 import { jwt_secret, token_lifetime } from '../app.js';
 import passport from 'passport';
 import { check_validation, existing_user_validator, game_id_validator, new_game_validator, new_user_validator, patch_game_validator, rating_validator } from '../lib/validators.js';
+import { uploadImage } from '../lib/cloudinary.js';
+import { logger } from '../lib/logger.js';
 import { matchedData } from 'express-validator';
+import { decodeHtmlEntities } from '../lib/utils.js';
 
 export const router = express.Router();
 
@@ -195,14 +198,15 @@ async function get_games(req: Request, res: Response) {
 }
 
 async function post_game(req: Request, res: Response) {
-  const { name, category, description, studio, year} = matchedData(req);
+  const { name, category, description, studio, year, image } = matchedData(req);
 
   const game = await Games.insert_game({
     name,
     category,
     description,
     studio,
-    year
+    year,
+    image: decodeHtmlEntities(image)
   });
 
   if (game.isErr()) {
@@ -234,7 +238,7 @@ async function patch_game_by_id(req: Request, res: Response) {
     if (req.resource?.type !== ResourceType.GAME)
         return res.status(500).json({ error: 'Internal error' });
 
-    const { name, category, description, studio, year } = matchedData(req);
+    const { name, category, description, studio, year, image } = matchedData(req);
     const game = req.resource;
 
     const updated_game = await Games.update_game({
@@ -243,7 +247,8 @@ async function patch_game_by_id(req: Request, res: Response) {
         category: category || game.category,
         description: description || game.description,
         studio: studio || game.studio,
-        year: year || game.year
+        year: year || game.year,
+        image: image || game.image
     });
 
     if (!updated_game) {

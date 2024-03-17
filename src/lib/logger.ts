@@ -4,7 +4,7 @@ export interface ILogger {
     error: (...messages: unknown[]) => void;
   }
   
-  export class Logger implements ILogger {
+  class Logger implements ILogger {
     private silent: boolean;
   
     constructor(silent = false) {

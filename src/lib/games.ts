@@ -1,6 +1,8 @@
 import { Result, Err, Option, Some, None, Ok } from 'ts-results-es';
 import { getDatabase } from './db.js';
 import { Game, Rating, ResourceType } from './types.js';
+import { uploadImage } from './cloudinary.js';
+import { UploadApiResponse } from 'cloudinary';
 
 const page_size = 10;
 
@@ -15,7 +17,7 @@ export async function get_games(offset: number = 0, limit: number | null = page_
     return Err('Could not get database connection');
 
   const q = `
-SELECT id, name, category, description, studio, year
+SELECT id, name, category, description, studio, year, image
 FROM games
 `;
 
@@ -38,7 +40,7 @@ export async function get_game(id: number): Promise<Result<Option<Game>, string>
     return Err('Could not get database connection');
 
   const q = `
-SELECT id, name, category, description, studio, year
+SELECT id, name, category, description, studio, year, image
 FROM games
 WHERE id = $1
 `;
@@ -59,10 +61,23 @@ export async function insert_game(game: Omit<Omit<Game, 'id'>, 'type'>): Promise
   if (!db)
     return Err('Could not get database connection');
 
+  if (game.image) {
+    try {
+      const uploadImageResponse: UploadApiResponse | undefined = await uploadImage(new URL(game.image).href);
+      if (!uploadImageResponse) {
+        return Err('Could not upload image');
+      }
+      game.image = uploadImageResponse.url;
+    } catch(e) {
+      console.error(e);
+      return Err('Could not upload image');
+    }
+  }
+
   const q = `
-INSERT INTO games (name, category, description, studio, year)
-VALUES ($1, $2, $3, $4, $5)
-RETURNING id, name, category, description, studio, year;
+INSERT INTO games (name, category, description, studio, year, image)
+VALUES ($1, $2, $3, $4, $5, $6)
+RETURNING id, name, category, description, studio, year, image;
 `;
 
   const result = await db.query(q, [
@@ -71,6 +86,7 @@ RETURNING id, name, category, description, studio, year;
     game.description,
     game.studio,
     game.year,
+    game.image,
   ]);
 
   if (!result || result.rowCount !== 1) {
@@ -84,6 +100,7 @@ export async function update_game(game: Omit<Game, 'type'>): Promise<Result<Game
   const db = getDatabase();
   if (!db)
     return Err('Could not get database connection');
+  
 
   const result = await db.query(`
 UPDATE games
@@ -92,16 +109,18 @@ SET
   category = $2,
    description = $3,
    studio = $4,
-   year = $5
-WHERE id = $6
-RETURNING id, name, category, description, studio, year;
+   year = $5,
+   image = $6
+WHERE id = $7
+RETURNING id, name, category, description, studio, year, image;
 `, [
-    game.name,
-    game.category,
-    game.description,
-    game.studio,
-    game.year,
-    game.id
+  game.name,
+  game.category,
+  game.description,
+  game.studio,
+  game.year,
+  game.image,
+  game.id
 ]);
 
   if (!result || result.rowCount !== 1) {
