@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import { RequestHandler } from 'express';
 
 export enum Method {
   GET,
@@ -7,15 +7,10 @@ export enum Method {
   DELETE
 }
 
-export type Middleware = (req: Request, res: Response, next: NextFunction) => void;
-export type Handler = (req: Request, res: Response) => void;
-
-export type RequestHandler = Handler | Middleware;
-
 export interface MethodDescriptor {
   method: Method,
-  authentication: Array<Middleware>,
-  validation: Array<Middleware>,
+  authentication: Array<RequestHandler>,
+  validation: Array<RequestHandler>,
   handlers: Array<RequestHandler>
 };
 
@@ -36,12 +31,18 @@ export interface Endpoint {
   methods: Array<MethodDescriptor>
 }
 
+export enum ResourceType {
+  USER,
+  GAME
+}
+
 export interface User {
   id: number,
   username: string,
-  name: string
+  name: string,
   password: string,
-  admin: boolean
+  admin: boolean,
+  type: ResourceType.USER,
 }
 
 export interface Game {
@@ -52,9 +53,11 @@ export interface Game {
   studio: string,
   year: number,
   image: string
+  type: ResourceType.GAME
 }
 
 export interface Rating {
+  user_id: number,
   game_id: number,
   rating: number
 }
@@ -64,9 +67,13 @@ declare global {
     interface User {
       id: number,
       username: string,
-      name: string
+      name: string,
       password: string,
-      admin: boolean
+      admin: boolean,
+      type: ResourceType.USER,
+    }
+    export interface Request {
+      resource?: User | Game
     }
   }
 }

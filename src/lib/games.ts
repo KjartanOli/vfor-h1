@@ -1,15 +1,15 @@
 import { Result, Err, Option, Some, None, Ok } from 'ts-results-es';
 import { getDatabase } from './db.js';
-import { Game, Rating } from './types';
+import { Game, Rating, ResourceType } from './types.js';
 import { uploadImage } from './cloudinary.js';
 
-const MAX_GAMES = 100;
+const page_size = 10;
 
 /**
  * Get games from the database.
  * @param {number} [limit=MAX_GAMES] Number of games to get.
  */
-export async function get_games(limit: number = MAX_GAMES): Promise<Result<Array<Game>, string>> {
+export async function get_games(offset: number = 0, limit: number | null = page_size): Promise<Result<Array<Game>, string>> {
   const db = getDatabase();
 
   if (!db)
@@ -18,15 +18,14 @@ export async function get_games(limit: number = MAX_GAMES): Promise<Result<Array
   const q = `
 SELECT id, name, category, description, studio, year, image
 FROM games
-LIMIT $1
 `;
 
-  const used_limit = Math.min(limit > 0 ? limit : MAX_GAMES, MAX_GAMES);
+  const used_limit = Math.min((limit && limit > 0) ? limit : page_size, page_size);
 
-  const results = await db.query(q, [used_limit.toString()]);
+  const results = await db.paged_query(q, offset, used_limit);
 
-  if (!results || results.rowCount === 0)
-    return Ok([]);
+  if (!results)
+    return Err('Database error');
 
   return Ok(results.rows);
 }
@@ -49,13 +48,14 @@ WHERE id = $1
   if (!results || results.rowCount === 0)
     return Ok(None);
 
-  return Ok(Some(results.rows[0]));
+  const game: Game = { ...results.rows[0], type: ResourceType.GAME };
+  return Ok(Some(game));
 }
 
 /**
  * Insert a game into the database.
  */
-export async function insert_game(game: Omit<Game, 'id'>): Promise<Result<Game, string>> {
+export async function insert_game(game: Omit<Omit<Game, 'id'>, 'type'>): Promise<Result<Game, string>> {
   const db = getDatabase();
   if (!db)
     return Err('Could not get database connection');
@@ -79,10 +79,10 @@ RETURNING id, name, category, description, studio, year, image;
     return Err(`unable to insert game, ${{ result, game }}`);
   }
 
-  return Ok(result.rows[0]);
+  return Ok({ ...result.rows[0], type: ResourceType.GAME });
 }
 
-export async function update_game(game: Game): Promise<Result<Game, string>> {
+export async function update_game(game: Omit<Game, 'type'>): Promise<Result<Game, string>> {
   const db = getDatabase();
   if (!db)
     return Err('Could not get database connection');
@@ -112,7 +112,7 @@ RETURNING id, name, category, description, studio, year, image;
     return Err(`unable to update game, ${{ result, game }}`);
   }
 
-  return result.rows[0];
+  return Ok({ ...result.rows[0], type: ResourceType.GAME });
 }
 
 /**
@@ -130,35 +130,38 @@ export async function delete_game(id: number): Promise<Result<true, string>> {
   return Ok(true);
 }
 
-export async function get_ratings(game_id: number): Promise<Result<Array<Rating>, string>> {
+export async function get_ratings(game_id: number, offset: number = 0, limit: number | null = page_size): Promise<Result<Array<Rating>, string>> {
     const db = getDatabase();
     if (!db)
         return Err('Could not get database connection');
 
-    const result = await db.query(`
-SELECT game_id, rating
+    const used_limit = Math.min((limit && limit > 0) ? limit : page_size, page_size);
+    const result = await db.paged_query(`
+SELECT user_id, game_id, rating
 FROM ratings
 WHERE game_id = $1
-`, [game_id]);
+`, offset, used_limit, [game_id]);
     if (!result) {
         return Err('Error retrieving ratings');
     }
+
     return Ok(result.rows);
 }
 
-export async function insert_rating(game_id: number, rating: number): Promise<Result<Rating, string>> {
+export async function insert_rating(user_id: number, game_id: number, rating: number): Promise<Result<Rating, string>> {
     const db = getDatabase();
     if (!db)
         return Err('Could not get database connection');
 
     const result = await db.query(`
-INSERT INTO ratings (game_id, rating)
-VALUES ($1, $2)
-RETURNING game_id, rating
+INSERT INTO ratings (user_id, game_id, rating)
+VALUES ($1, $2, $3)
+RETURNING user_id, game_id, rating
 `, [
-        game_id,
-        rating
-    ]);
+  user_id,
+  game_id,
+  rating
+]);
 
     if (!result || result.rowCount !== 1) {
         return Err(`unable to insert rating ${{ result, rating }}`);

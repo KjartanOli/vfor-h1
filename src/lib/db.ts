@@ -1,7 +1,7 @@
 import pg from 'pg';
 import { ILogger, logger as loggerSingleton } from './logger.js';
-import { Game } from './types.js';
 import { environment } from './environment.js';
+import { readFile } from 'fs/promises';
 
 /**
  * Database class.
@@ -74,7 +74,7 @@ export class Database {
    */
   async query(
     query: string,
-    values: Array<string | number> = [],
+    values: Array<string | number> = []
   ): Promise<pg.QueryResult | null> {
     const client = await this.connect();
 
@@ -93,31 +93,38 @@ export class Database {
     }
   }
 
+  async paged_query(
+    query: string,
+    offset: number,
+    limit: number,
+    values: Array<string | number> = []
+  ): Promise<pg.QueryResult | null> {
+    const client = await this.connect();
+    if (!client) {
+      return null;
+    }
+
+    const limit_arg = values.length + 1;
+    const offset_arg = limit_arg + 1;
+
+    const q = `${query} LIMIT $${limit_arg} OFFSET $${offset_arg}`;
+    try {
+      const result = await client.query(q, [...values, limit, offset]);
+      return result;
+    } catch (e) {
+      this.logger.error('Error running query', e);
+      return null;
+    } finally {
+      client.release();
+    }
+  }
+
 
   /**
    * Create the database schema.
    */
   async createSchema(): Promise<pg.QueryResult | null> {
-    const q = `
-      DROP TABLE IF EXISTS games;
-      CREATE TABLE IF NOT EXISTS games (
-        id SERIAL PRIMARY KEY,
-        name TEXT NOT NULL,
-        category TEXT NOT NULL,
-        description TEXT NOT NULL,
-        studio TEXT NOT NULL,
-        year INTEGER NOT NULL,
-        image VARCHAR(255)
-      );
-
-      DROP TABLE IF EXISTS ratings;
-      CREATE TABLE IF NOT EXISTS ratings (
-        id SERIAL PRIMARY KEY,
-        game_id INTEGER NOT NULL,
-        rating INTEGER NOT NULL,
-        FOREIGN KEY (game_id) REFERENCES games (id) ON DELETE CASCADE
-      );
-    `;
+    const q = await readFile('src/sql/schema.sql', { encoding: 'utf8' });
     return this.query(q);
   }
 }
@@ -142,3 +149,4 @@ export function getDatabase() {
 
   return db;
 }
+
