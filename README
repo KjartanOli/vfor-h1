@@ -1,0 +1,11 @@
+URL: https://vfor-h1.onrender.com
+
+Notendur:
+
+username: admin
+password: 1234
+admin: true
+
+username: user
+password: 1234
+admin: false
