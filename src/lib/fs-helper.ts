@@ -13,7 +13,7 @@ export async function stat(file: string) {
     try {
         result = await fsStat(file);
     } catch (e) {
-        // empty
+        console.error(e);
     }
     return result;
 }
