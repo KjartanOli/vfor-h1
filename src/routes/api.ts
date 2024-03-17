@@ -261,20 +261,31 @@ async function get_game_ratings(req: Request, res: Response) {
 }
 
 async function post_game_ratings(req: Request, res: Response) {
-      if (req.resource?.type !== ResourceType.GAME)
+    if (req.resource?.type !== ResourceType.GAME)
         return res.status(500).json({ error: 'Internal error' });
 
-  const game = req.resource;
-  const user = req.user;
-  const { rating } = matchedData(req);
+    const game = req.resource;
+    const user = req.user;
+    // This condition should newer be false because the authentication
+    // handlers should prevent ever reaching this function if the user
+    // is not authenticated but the compiler can't see that.
+    if (!user)
+        return res.status(401).json({ error: 'You must be logged in to perform this action' });
 
-  // This condition should newer be false because the authentication
-  // handlers should prevent ever reaching this function if the user
-  // is not authenticated but the compiler can't see that.
-  if (!user)
-    return res.status(401).json({ error: 'You must be logged in to perform this action' });
+  // This should be checked in a validation midleware, but we're
+  // already using req.resource for the game object so we can't.  This
+  // is ugly but the changes to allow req.resource to contain multiple
+  // values are big enought that it's not worth it at this time.
+    const r = await Games.get_rating(user.id, game.id);
+    if (r.isErr())
+        return res.status(500).json({ error: 'Internal error' });
 
-  const result = await Games.insert_rating(user.id, game.id, rating);
+    if (r.value.isSome())
+        return res.status(400).json({ error: 'You have already rated this game' });
+
+    const { rating } = matchedData(req);
+
+    const result = await Games.insert_rating(user.id, game.id, rating);
 
     if (result.isErr()) {
         return res.status(500).json({ error: 'Could not insert rating' });

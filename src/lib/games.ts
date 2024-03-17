@@ -164,3 +164,24 @@ RETURNING user_id, game_id, rating
     }
     return Ok(result.rows[0]);
 }
+
+export async function get_rating(user_id: number, game_id: number): Promise<Result<Option<Rating>, string>> {
+    const db = getDatabase();
+    if (!db)
+        return Err('Could not get database connection');
+
+  const q = `
+SELECT user_id, game_id, rating
+FROM ratings
+WHERE user_id = $1 AND game_id = $2
+`;
+
+  const result = await db.query(q, [user_id, game_id]);
+  if (!result)
+    return Err('Database error');
+
+  if (result.rowCount === 0)
+    return Ok(None);
+
+  return Ok(Some(result.rows[0]));
+}
