@@ -165,6 +165,30 @@ RETURNING user_id, game_id, rating
     return Ok(result.rows[0]);
 }
 
+export async function update_rating(user_id: number, game_id: number, rating: number): Promise<Result<Rating, string>> {
+    const db = getDatabase();
+    if (!db)
+        return Err('Could not get database connection');
+
+    const q = `
+UPDATE ratings
+SET rating = $3
+WHERE user_id = $1 AND game_id = $2
+RETURNING user_id, game_id, rating
+`;
+
+    const result = await db.query(q, [
+        user_id,
+        game_id,
+        rating
+    ]);
+
+    if (!result || result.rowCount !== 1) {
+        return Err(`unable to insert rating ${{ result, rating }}`);
+    }
+    return Ok(result.rows[0]);
+}
+
 export async function get_rating(user_id: number, game_id: number): Promise<Result<Option<Rating>, string>> {
     const db = getDatabase();
     if (!db)
